@@ -38,3 +38,7 @@ next-env.d.ts
 # prisma
 /prisma/migrations
 yt-planner/
+
+# Unrelated files
+Revamp Statistics Dashboard.zip
+Revamp Statistics Dashboard/
