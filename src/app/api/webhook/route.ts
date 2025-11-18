@@ -203,7 +203,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Forward to all configured destinations (non-blocking)
-    dispatchForwarders(payload).catch((error) => {
+    // Include trade data with P&L for TP/SL signals
+    const forwardPayload = {
+      ...payload,
+      ...(trade && {
+        tradeId: trade.id,
+        pnl: trade.pnl,
+        pnlPercent: trade.pnlPercent,
+        entryPrice: trade.entryPrice,
+      }),
+    };
+
+    dispatchForwarders(forwardPayload).catch((error) => {
       console.error('Error in webhook forwarding:', error);
     });
 

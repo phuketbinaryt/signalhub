@@ -31,7 +31,7 @@ export async function forwardToDiscord(payload: any): Promise<void> {
 }
 
 function formatDiscordMessage(payload: any) {
-  const { action, ticker, price, direction, takeProfit, stopLoss } = payload;
+  const { action, ticker, price, direction, takeProfit, stopLoss, pnl, pnlPercent, entryPrice } = payload;
 
   const color = action === 'entry' ? 0x00ff00 : action === 'take_profit' ? 0x0099ff : 0xff0000;
   const emoji = action === 'entry' ? '🟢' : action === 'take_profit' ? '🎯' : '🛑';
@@ -46,12 +46,31 @@ function formatDiscordMessage(payload: any) {
     fields.push({ name: 'Direction', value: direction.toUpperCase(), inline: true });
   }
 
-  if (takeProfit) {
-    fields.push({ name: 'Take Profit', value: `$${takeProfit}`, inline: true });
+  // For entry signals, show TP/SL targets
+  if (action === 'entry') {
+    if (takeProfit) {
+      fields.push({ name: 'Take Profit', value: `$${takeProfit}`, inline: true });
+    }
+
+    if (stopLoss) {
+      fields.push({ name: 'Stop Loss', value: `$${stopLoss}`, inline: true });
+    }
   }
 
-  if (stopLoss) {
-    fields.push({ name: 'Stop Loss', value: `$${stopLoss}`, inline: true });
+  // For TP/SL signals, show entry price and P&L
+  if ((action === 'take_profit' || action === 'stop_loss') && entryPrice) {
+    fields.push({ name: 'Entry Price', value: `$${entryPrice}`, inline: true });
+
+    if (pnl !== undefined && pnl !== null) {
+      const pnlFormatted = pnl >= 0 ? `+$${pnl.toFixed(2)}` : `-$${Math.abs(pnl).toFixed(2)}`;
+      const pnlColor = pnl >= 0 ? '🟢' : '🔴';
+      fields.push({ name: 'P&L', value: `${pnlColor} ${pnlFormatted}`, inline: true });
+    }
+
+    if (pnlPercent !== undefined && pnlPercent !== null) {
+      const percentFormatted = pnlPercent >= 0 ? `+${pnlPercent.toFixed(2)}%` : `${pnlPercent.toFixed(2)}%`;
+      fields.push({ name: 'P&L %', value: percentFormatted, inline: true });
+    }
   }
 
   return {
