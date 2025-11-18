@@ -2,13 +2,13 @@ databases:
   - name: tradingview-db
     databaseName: tradingview
     user: tradingview
-    plan: starter
+    plan: free
 
 services:
   - type: web
     name: tradingview-webhook-dashboard
     runtime: node
-    plan: starter
+    plan: free
     buildCommand: npm install && npm run build
     startCommand: npm start
     envVars:
