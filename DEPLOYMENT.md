@@ -59,7 +59,7 @@ This guide walks you through deploying the TradingView Webhook Dashboard on Rend
    - **Name**: `tradingview-db`
    - **Database**: `tradingview`
    - **Region**: Choose closest region
-   - **Plan**: Free or Starter
+   - **Plan**: Free (or Basic for production)
 4. Click "Create Database"
 5. **Copy the Internal Database URL** (you'll need this)
 
@@ -79,7 +79,7 @@ This guide walks you through deploying the TradingView Webhook Dashboard on Rend
    - **Start Command**: `npm start`
 
 5. **Select Plan:**
-   - Free (with limitations) or Starter (recommended)
+   - Free (with limitations) or paid tiers for production use
 
 6. **Environment Variables:**
 
@@ -242,7 +242,7 @@ npm run db:migrate
 1. **Free Tier Limitations:**
    - Services spin down after 15 minutes of inactivity
    - First request after spin-down is slow (cold start)
-   - Consider Starter plan for always-on service
+   - Consider paid plans for always-on service
 
 2. **Database Performance:**
    - Free tier has connection limits
@@ -266,14 +266,14 @@ npm run db:migrate
 ## Cost Estimation
 
 **Free Tier:**
-- Web Service: Free (with limitations)
-- PostgreSQL: Free (90 days, then $7/month)
-- Total: $0-7/month
+- Web Service: Free (with limitations - spins down after inactivity)
+- PostgreSQL: Free (limited, expires after 90 days)
+- Total: $0/month (temporary)
 
-**Starter Tier (Recommended):**
-- Web Service: $7/month
-- PostgreSQL: $7/month
-- Total: $14/month
+**Paid Tier (Recommended for Production):**
+- Web Service: Starting at $7/month (always-on)
+- PostgreSQL: Starting at $7/month (Basic plan)
+- Total: ~$14/month and up
 
 ## Next Steps
 
