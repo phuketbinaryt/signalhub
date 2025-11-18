@@ -130,13 +130,24 @@ export async function POST(request: NextRequest) {
 
     // Validate required fields
     if (!payload.action || !payload.ticker || !payload.price) {
+      console.error('❌ Invalid webhook - missing required fields:', {
+        action: payload.action,
+        ticker: payload.ticker,
+        price: payload.price,
+      });
       return NextResponse.json(
         { error: 'Missing required fields: action, ticker, price' },
         { status: 400 }
       );
     }
 
-    console.log('Received webhook:', payload);
+    console.log('📥 Webhook received:', {
+      action: payload.action,
+      ticker: payload.ticker,
+      price: payload.price,
+      direction: payload.direction,
+      timestamp: new Date().toISOString(),
+    });
 
     // Process based on action type
     let trade;
@@ -202,7 +213,7 @@ async function handleEntry(payload: WebhookPayload) {
     },
   });
 
-  console.log('Created new trade:', trade.id);
+  console.log(`✅ Trade opened [ID: ${trade.id}] ${ticker} ${direction?.toUpperCase()} @ ${price} | SL: ${stopLoss || 'N/A'} | TP: ${takeProfit || 'N/A'} | Qty: ${quantity || 1}`);
   return trade;
 }
 
@@ -221,7 +232,7 @@ async function handleTakeProfit(payload: WebhookPayload) {
   });
 
   if (!openTrade) {
-    console.warn(`No open trade found for ticker ${ticker}, creating event anyway`);
+    console.warn(`⚠️ No open trade found for ticker ${ticker} - cannot process take profit`);
     return null;
   }
 
@@ -252,7 +263,7 @@ async function handleTakeProfit(payload: WebhookPayload) {
     },
   });
 
-  console.log(`Closed trade ${trade.id} with take profit. P&L: ${pnl}`);
+  console.log(`🎯 Take Profit HIT [ID: ${trade.id}] ${ticker} | Entry: ${openTrade.entryPrice} → Exit: ${price} | P&L: $${pnl.toFixed(2)} (${pnlPercent.toFixed(2)}%)`);
   return trade;
 }
 
@@ -271,7 +282,7 @@ async function handleStopLoss(payload: WebhookPayload) {
   });
 
   if (!openTrade) {
-    console.warn(`No open trade found for ticker ${ticker}, creating event anyway`);
+    console.warn(`⚠️ No open trade found for ticker ${ticker} - cannot process stop loss`);
     return null;
   }
 
@@ -302,7 +313,7 @@ async function handleStopLoss(payload: WebhookPayload) {
     },
   });
 
-  console.log(`Closed trade ${trade.id} with stop loss. P&L: ${pnl}`);
+  console.log(`🛑 Stop Loss HIT [ID: ${trade.id}] ${ticker} | Entry: ${openTrade.entryPrice} → Exit: ${price} | P&L: $${pnl.toFixed(2)} (${pnlPercent.toFixed(2)}%)`);
   return trade;
 }
 
