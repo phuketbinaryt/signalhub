@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { dispatchForwarders } from '@/lib/forwarders';
 
+// Force dynamic rendering for this API route
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 interface WebhookPayload {
   secret?: string;
   action: 'entry' | 'take_profit' | 'stop_loss';
