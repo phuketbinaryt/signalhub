@@ -15,6 +15,7 @@ interface WebhookPayload {
   takeProfit?: number;
   stopLoss?: number;
   quantity?: number;
+  pnl?: number; // P&L from TradingView
   content?: string; // For text-based format
 }
 
@@ -265,7 +266,7 @@ async function handleEntry(payload: WebhookPayload) {
 }
 
 async function handleTakeProfit(payload: WebhookPayload) {
-  const { ticker, price } = payload;
+  const { ticker, price, pnl: payloadPnl } = payload;
 
   // Find the most recent open trade for this ticker
   const openTrade = await prisma.trade.findFirst({
@@ -285,9 +286,11 @@ async function handleTakeProfit(payload: WebhookPayload) {
 
   console.log(`🔍 Found open trade [ID: ${openTrade.id}] for ${ticker} - Quantity from DB: ${openTrade.quantity}, Type: ${typeof openTrade.quantity}`);
 
-  // Calculate P&L
-  const pnl = calculatePnL(openTrade, price);
+  // Use P&L from TradingView if provided, otherwise calculate it
+  const pnl = payloadPnl !== undefined ? payloadPnl : calculatePnL(openTrade, price);
   const pnlPercent = ((price - openTrade.entryPrice) / openTrade.entryPrice) * 100;
+
+  console.log(`💰 Using P&L: $${pnl.toFixed(2)} (${payloadPnl !== undefined ? 'from TradingView' : 'calculated'})`);
 
   // Update trade and create event
   const trade = await prisma.trade.update({
@@ -317,7 +320,7 @@ async function handleTakeProfit(payload: WebhookPayload) {
 }
 
 async function handleStopLoss(payload: WebhookPayload) {
-  const { ticker, price } = payload;
+  const { ticker, price, pnl: payloadPnl } = payload;
 
   // Find the most recent open trade for this ticker
   const openTrade = await prisma.trade.findFirst({
@@ -337,9 +340,11 @@ async function handleStopLoss(payload: WebhookPayload) {
 
   console.log(`🔍 Found open trade [ID: ${openTrade.id}] for ${ticker} - Quantity from DB: ${openTrade.quantity}, Type: ${typeof openTrade.quantity}`);
 
-  // Calculate P&L
-  const pnl = calculatePnL(openTrade, price);
+  // Use P&L from TradingView if provided, otherwise calculate it
+  const pnl = payloadPnl !== undefined ? payloadPnl : calculatePnL(openTrade, price);
   const pnlPercent = ((price - openTrade.entryPrice) / openTrade.entryPrice) * 100;
+
+  console.log(`💰 Using P&L: $${pnl.toFixed(2)} (${payloadPnl !== undefined ? 'from TradingView' : 'calculated'})`);
 
   // Update trade and create event
   const trade = await prisma.trade.update({
