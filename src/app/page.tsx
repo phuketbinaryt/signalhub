@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -10,6 +12,13 @@ export default function Home() {
             Receive TradingView webhooks, store them in PostgreSQL, forward to multiple
             destinations, and view your trading performance in a beautiful dashboard.
           </p>
+
+          <Link
+            href="/dashboard"
+            className="inline-block bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition mb-12"
+          >
+            Go to Dashboard →
+          </Link>
 
           <div className="bg-white rounded-lg shadow-xl p-8 max-w-4xl mx-auto">
             <h2 className="text-2xl font-semibold mb-6 text-gray-800">Key Features</h2>
