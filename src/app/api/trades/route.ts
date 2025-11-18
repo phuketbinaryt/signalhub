@@ -112,15 +112,10 @@ async function calculateStats(where: any) {
       stat.openTrades++;
     } else {
       stat.closedTrades++;
-      const pnl = trade.pnl || 0;
-      stat.totalPnl += pnl;
-
-      // Debug: Log each closed trade's P&L
-      console.log(`🔍 Trade ID ${trade.id} - Ticker: ${trade.ticker}, Status: ${trade.status}, P&L: ${trade.pnl} (${pnl}), Checking: ${pnl} > 0 = ${pnl > 0}, ${pnl} < 0 = ${pnl < 0}`);
-
-      if (pnl > 0) {
+      stat.totalPnl += trade.pnl || 0;
+      if ((trade.pnl || 0) > 0) {
         stat.wins++;
-      } else if (pnl < 0) {
+      } else if ((trade.pnl || 0) < 0) {
         stat.losses++;
       }
     }
@@ -129,11 +124,6 @@ async function calculateStats(where: any) {
   const byTicker = Object.values(tickerStats).sort(
     (a: any, b: any) => b.totalTrades - a.totalTrades
   );
-
-  // Debug logging for ticker stats
-  byTicker.forEach((ticker: any) => {
-    console.log(`📊 Ticker Stats - ${ticker.ticker}: Wins=${ticker.wins}, Losses=${ticker.losses}, Total P&L=${ticker.totalPnl}, Closed=${ticker.closedTrades}`);
-  });
 
   return {
     overall: {
