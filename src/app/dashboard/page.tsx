@@ -5,7 +5,7 @@ import { StatCard } from '@/components/StatCard';
 import { ToggleGroup } from '@/components/ToggleGroup';
 import { PerformanceCharts } from '@/components/PerformanceCharts';
 import { Button } from '@/components/ui/button';
-import { TrendingUp, TrendingDown } from 'lucide-react';
+import { TrendingUp, TrendingDown, Trash2 } from 'lucide-react';
 
 interface TradeData {
   trades: any[];
@@ -61,6 +61,28 @@ export default function Dashboard() {
       console.error('Error fetching trades:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async (tradeId: number) => {
+    if (!confirm('Are you sure you want to delete this trade?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/trades/${tradeId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete trade');
+      }
+
+      // Refresh the trades list
+      await fetchTrades();
+    } catch (error) {
+      console.error('Error deleting trade:', error);
+      alert('Failed to delete trade. Please try again.');
     }
   };
 
@@ -186,6 +208,7 @@ export default function Dashboard() {
                       <th className="px-4 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">P&L</th>
                       <th className="px-4 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">P&L %</th>
                       <th className="px-4 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Spread</th>
+                      <th className="px-4 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -226,6 +249,16 @@ export default function Dashboard() {
                         </td>
                         <td className="px-4 py-4 text-muted-foreground">
                           {new Date(trade.openedAt).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })}
+                        </td>
+                        <td className="px-4 py-4">
+                          <button
+                            onClick={() => handleDelete(trade.id)}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-primary hover:bg-primary/90 text-white rounded text-xs font-medium transition-colors"
+                            title="Delete trade"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            Delete
+                          </button>
                         </td>
                       </tr>
                     ))}
