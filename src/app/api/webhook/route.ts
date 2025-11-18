@@ -19,7 +19,7 @@ function parseTextWebhook(content: string): Partial<WebhookPayload> | null {
   try {
     // Entry signals
     if (content.includes('BUY Signal') && !content.includes('SKIPPED')) {
-      const tickerMatch = content.match(/^[^\s]+\s+(\w+)\s+BUY/);
+      const tickerMatch = content.match(/^[^\s]+\s+([A-Z0-9!@#$%^&*_+\-=]+)\s+BUY/i);
       const entryMatch = content.match(/Entry:\s*([\d.]+)/);
       const slMatch = content.match(/SL:\s*([\d.]+)/);
       const tpMatch = content.match(/TP:\s*([\d.]+)/);
@@ -39,7 +39,7 @@ function parseTextWebhook(content: string): Partial<WebhookPayload> | null {
     }
 
     if (content.includes('SELL Signal') && !content.includes('SKIPPED')) {
-      const tickerMatch = content.match(/^[^\s]+\s+(\w+)\s+SELL/);
+      const tickerMatch = content.match(/^[^\s]+\s+([A-Z0-9!@#$%^&*_+\-=]+)\s+SELL/i);
       const entryMatch = content.match(/Entry:\s*([\d.]+)/);
       const slMatch = content.match(/SL:\s*([\d.]+)/);
       const tpMatch = content.match(/TP:\s*([\d.]+)/);
@@ -60,7 +60,7 @@ function parseTextWebhook(content: string): Partial<WebhookPayload> | null {
 
     // Take Profit
     if (content.includes('Take Profit HIT')) {
-      const tickerMatch = content.match(/^[^\s]+\s+(\w+)\s+(?:BUY|SELL)/);
+      const tickerMatch = content.match(/^[^\s]+\s+([A-Z0-9!@#$%^&*_+\-=]+)\s+(?:BUY|SELL)/i);
       const exitMatch = content.match(/Exit:\s*([\d.]+)/);
 
       if (tickerMatch && exitMatch) {
@@ -74,7 +74,7 @@ function parseTextWebhook(content: string): Partial<WebhookPayload> | null {
 
     // Stop Loss
     if (content.includes('Stop Loss HIT')) {
-      const tickerMatch = content.match(/^[^\s]+\s+(\w+)\s+(?:BUY|SELL)/);
+      const tickerMatch = content.match(/^[^\s]+\s+([A-Z0-9!@#$%^&*_+\-=]+)\s+(?:BUY|SELL)/i);
       const exitMatch = content.match(/Exit:\s*([\d.]+)/);
 
       if (tickerMatch && exitMatch) {
@@ -95,11 +95,41 @@ function parseTextWebhook(content: string): Partial<WebhookPayload> | null {
 
 export async function POST(request: NextRequest) {
   try {
-    let rawPayload: any = await request.json();
     let payload: WebhookPayload;
+    const contentType = request.headers.get('content-type') || '';
 
-    // Check if this is a text-based webhook (has "content" field)
-    if (rawPayload.content && typeof rawPayload.content === 'string') {
+    // Read raw body
+    const bodyText = await request.text();
+
+    // Try to parse as JSON first
+    let rawPayload: any;
+    let isPlainText = false;
+
+    try {
+      rawPayload = JSON.parse(bodyText);
+    } catch (e) {
+      // Not valid JSON, treat as plain text
+      isPlainText = true;
+      console.log('Received plain text webhook:', bodyText);
+    }
+
+    if (isPlainText) {
+      // Plain text format - parse directly
+      const parsed = parseTextWebhook(bodyText);
+
+      if (!parsed) {
+        return NextResponse.json(
+          { error: 'Unable to parse webhook content' },
+          { status: 400 }
+        );
+      }
+
+      payload = {
+        ...parsed,
+        secret: process.env.WEBHOOK_SECRET, // Use server secret for plain text
+      } as WebhookPayload;
+    } else if (rawPayload.content && typeof rawPayload.content === 'string') {
+      // JSON with "content" field
       console.log('Received text-based webhook:', rawPayload.content);
       const parsed = parseTextWebhook(rawPayload.content);
 
@@ -112,7 +142,7 @@ export async function POST(request: NextRequest) {
 
       payload = {
         ...parsed,
-        secret: rawPayload.secret,
+        secret: rawPayload.secret || process.env.WEBHOOK_SECRET,
       } as WebhookPayload;
     } else {
       // Standard JSON format
