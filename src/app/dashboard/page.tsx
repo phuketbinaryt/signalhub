@@ -1,9 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import StatsCard from '@/components/StatsCard';
-import TickerSummary from '@/components/TickerSummary';
-import TradeTable from '@/components/TradeTable';
+import { StatCard } from '@/components/StatCard';
+import { ToggleGroup } from '@/components/ToggleGroup';
+import { PerformanceCharts } from '@/components/PerformanceCharts';
+import { Button } from '@/components/ui/button';
+import { TrendingUp, TrendingDown } from 'lucide-react';
 
 interface TradeData {
   trades: any[];
@@ -26,8 +28,9 @@ interface TradeData {
 export default function Dashboard() {
   const [tradeData, setTradeData] = useState<TradeData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedTicker, setSelectedTicker] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [selectedTicker, setSelectedTicker] = useState('all');
+  const [timePeriod, setTimePeriod] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
 
   useEffect(() => {
     fetchTrades();
@@ -38,7 +41,7 @@ export default function Dashboard() {
       setLoading(true);
       const params = new URLSearchParams();
 
-      if (selectedTicker) {
+      if (selectedTicker !== 'all') {
         params.append('ticker', selectedTicker);
       }
 
@@ -62,137 +65,277 @@ export default function Dashboard() {
   };
 
   const stats = tradeData?.stats.overall;
+  const trades = tradeData?.trades || [];
+  const byTicker = tradeData?.stats.byTicker || [];
+
+  // Get unique tickers for dropdown
+  const tickers = Array.from(new Set(trades.map((t: any) => t.ticker)));
+
+  // Prepare chart data
+  const plOverTimeData = trades
+    .filter((t: any) => t.status === 'closed' && t.closedAt)
+    .map((t: any) => ({
+      date: new Date(t.closedAt).toLocaleDateString('en-US', { month: '1-digit', day: '1-digit' }),
+      pnl: t.pnl || 0,
+    }))
+    .slice(0, 7)
+    .reverse();
+
+  const tickerPerformanceData = byTicker.map((t: any) => ({
+    ticker: t.ticker,
+    pnl: t.totalPnl || 0,
+    trades: t.totalTrades || 0,
+  }));
+
+  const winLossData = [
+    { name: 'Wins', value: stats?.winningTrades || 0, count: stats?.winningTrades || 0, total: stats?.closedTrades || 1 },
+    { name: 'Losses', value: stats?.losingTrades || 0, count: stats?.losingTrades || 0, total: stats?.closedTrades || 1 },
+  ];
 
   return (
-    <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Trading Dashboard</h1>
-        <p className="text-gray-600 mt-2">
-          Track your TradingView signals and performance
-        </p>
-      </div>
-
-      {/* Filters */}
-      <div className="mb-6 flex flex-wrap gap-4 items-center">
-        <div>
-          <label className="text-sm font-medium text-gray-700 mr-2">Status:</label>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-          >
-            <option value="all">All</option>
-            <option value="open">Open</option>
-            <option value="closed">Closed</option>
-          </select>
-        </div>
-
-        {selectedTicker && (
-          <div className="flex items-center">
-            <span className="text-sm text-gray-600 mr-2">
-              Filtered by: <strong>{selectedTicker}</strong>
-            </span>
-            <button
-              onClick={() => setSelectedTicker(null)}
-              className="text-sm text-primary-600 hover:text-primary-800"
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="border-b border-border bg-card/50 backdrop-blur-sm">
+        <div className="container mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-primary rounded flex items-center justify-center">
+                <TrendingUp className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h1 className="text-xl font-semibold">Trading Dashboard</h1>
+                <p className="text-xs text-muted-foreground">Track your TradingView signals and performance</p>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-muted-foreground">State:</span>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="bg-secondary border border-border rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             >
-              Clear
-            </button>
+              <option value="all">All</option>
+              <option value="open">Open</option>
+              <option value="closed">Closed</option>
+            </select>
+            <Button onClick={fetchTrades} className="bg-primary hover:bg-primary/90">
+              Refresh
+            </Button>
           </div>
-        )}
-
-        <button
-          onClick={fetchTrades}
-          className="ml-auto bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition text-sm"
-        >
-          Refresh
-        </button>
-      </div>
-
-      {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
         </div>
-      ) : (
-        <>
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <StatsCard
-              title="Total Trades"
-              value={stats?.totalTrades || 0}
-              subtitle={`${stats?.openTrades || 0} open, ${stats?.closedTrades || 0} closed`}
-            />
-            <StatsCard
-              title="Total P&L"
-              value={`$${stats?.totalPnl?.toFixed(2) || '0.00'}`}
-              trend={
-                (stats?.totalPnl || 0) > 0
-                  ? 'positive'
-                  : (stats?.totalPnl || 0) < 0
-                  ? 'negative'
-                  : 'neutral'
-              }
-            />
-            <StatsCard
-              title="Win Rate"
-              value={`${stats?.winRate?.toFixed(1) || 0}%`}
-              subtitle={`${stats?.winningTrades || 0}W / ${stats?.losingTrades || 0}L`}
-              trend={
-                (stats?.winRate || 0) >= 50
-                  ? 'positive'
-                  : (stats?.winRate || 0) > 0
-                  ? 'neutral'
-                  : 'negative'
-              }
-            />
-            <StatsCard
-              title="Avg Win / Loss"
-              value={`$${stats?.avgWin?.toFixed(2) || '0.00'}`}
-              subtitle={`Avg Loss: $${stats?.avgLoss?.toFixed(2) || '0.00'}`}
-            />
+      </header>
+
+      <div className="container mx-auto px-6 py-8">
+        {/* Filters Section */}
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-muted-foreground">Ticker:</span>
+            <select
+              value={selectedTicker}
+              onChange={(e) => setSelectedTicker(e.target.value)}
+              className="bg-secondary border border-border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary min-w-[120px]"
+            >
+              <option value="all">All Tickers</option>
+              {tickers.map((ticker: string) => (
+                <option key={ticker} value={ticker}>
+                  {ticker}
+                </option>
+              ))}
+            </select>
           </div>
 
-          {/* Ticker Summary */}
-          <div className="mb-8">
-            <TickerSummary
-              tickerStats={tradeData?.stats.byTicker || []}
-              onTickerClick={(ticker) => setSelectedTicker(ticker)}
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-muted-foreground">Period:</span>
+            <ToggleGroup
+              options={[
+                { value: 'daily', label: 'Daily' },
+                { value: 'weekly', label: 'Weekly' },
+                { value: 'monthly', label: 'Monthly' },
+                { value: 'all', label: 'All Time' }
+              ]}
+              value={timePeriod}
+              onChange={setTimePeriod}
             />
           </div>
-
-          {/* Trade Table */}
-          <div>
-            <TradeTable trades={tradeData?.trades || []} />
-          </div>
-        </>
-      )}
-
-      {/* Webhook Info */}
-      <div className="mt-12 bg-blue-50 border border-blue-200 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-blue-900 mb-2">
-          Webhook Configuration
-        </h3>
-        <p className="text-sm text-blue-800 mb-4">
-          Use the following endpoint in your TradingView alerts:
-        </p>
-        <div className="bg-white rounded border border-blue-300 p-3 font-mono text-sm text-gray-800 break-all">
-          POST {typeof window !== 'undefined' ? window.location.origin : ''}/api/webhook
         </div>
-        <div className="mt-4">
-          <p className="text-sm text-blue-800 font-medium mb-2">Payload format:</p>
-          <pre className="bg-white rounded border border-blue-300 p-3 text-xs text-gray-800 overflow-x-auto">
-{`{
+
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        ) : (
+          <>
+            {/* Recent Trades Table */}
+            <div className="bg-card border border-border rounded-lg overflow-hidden mb-8">
+              <div className="px-6 py-4 border-b border-border">
+                <h2 className="text-lg font-semibold">Recent Trades</h2>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-border bg-secondary/50">
+                      <th className="px-4 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Ticker</th>
+                      <th className="px-4 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Direction</th>
+                      <th className="px-4 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Contracts</th>
+                      <th className="px-4 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Entry</th>
+                      <th className="px-4 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Exit (Profit Target)</th>
+                      <th className="px-4 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Stop Loss</th>
+                      <th className="px-4 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Limit</th>
+                      <th className="px-4 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Status</th>
+                      <th className="px-4 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">P&L</th>
+                      <th className="px-4 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">P&L %</th>
+                      <th className="px-4 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Spread</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {trades.map((trade: any, index: number) => (
+                      <tr key={index} className="border-b border-border hover:bg-secondary/30 transition-colors">
+                        <td className="px-4 py-4">{trade.ticker}</td>
+                        <td className="px-4 py-4">
+                          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs ${
+                            trade.direction === 'short'
+                              ? 'bg-destructive/20 text-destructive'
+                              : 'bg-success/20 text-success'
+                          }`}>
+                            {trade.direction === 'short' ? (
+                              <TrendingDown className="w-3 h-3" />
+                            ) : (
+                              <TrendingUp className="w-3 h-3" />
+                            )}
+                            {trade.direction.toUpperCase()}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4">{trade.quantity}</td>
+                        <td className="px-4 py-4">${trade.entryPrice.toFixed(2)}</td>
+                        <td className="px-4 py-4">
+                          {trade.exitPrice ? `$${trade.exitPrice.toFixed(2)}` : trade.takeProfit ? `$${trade.takeProfit.toFixed(2)}` : '-'}
+                        </td>
+                        <td className="px-4 py-4">{trade.stopLoss ? `$${trade.stopLoss.toFixed(2)}` : '-'}</td>
+                        <td className="px-4 py-4">{trade.takeProfit ? `$${trade.takeProfit.toFixed(2)}` : '-'}</td>
+                        <td className="px-4 py-4">
+                          <span className="inline-flex px-2 py-1 rounded text-xs bg-muted text-foreground">
+                            {trade.status.toUpperCase()}
+                          </span>
+                        </td>
+                        <td className={`px-4 py-4 ${(trade.pnl || 0) < 0 ? 'text-destructive' : 'text-success'}`}>
+                          {trade.pnl ? `${trade.pnl >= 0 ? '+' : ''}$${trade.pnl.toFixed(2)}` : '-'}
+                        </td>
+                        <td className={`px-4 py-4 ${(trade.pnlPercent || 0) < 0 ? 'text-destructive' : 'text-success'}`}>
+                          {trade.pnlPercent ? `${trade.pnlPercent >= 0 ? '+' : ''}${trade.pnlPercent.toFixed(2)}%` : '-'}
+                        </td>
+                        <td className="px-4 py-4 text-muted-foreground">
+                          {new Date(trade.openedAt).toLocaleDateString('en-US', { month: '1-digit', day: '1-digit', year: 'numeric' })}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Stats Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              <StatCard
+                label="Total Trades"
+                value={stats?.totalTrades || 0}
+                subtitle="Signals Processed"
+              />
+              <StatCard
+                label="Total P&L"
+                value={`$${(stats?.totalPnl || 0).toFixed(2)}`}
+                isNegative={(stats?.totalPnl || 0) < 0}
+              />
+              <StatCard
+                label="Win Rate"
+                value={`${(stats?.winRate || 0).toFixed(1)}%`}
+                subtitle="Win Ratio"
+              />
+              <StatCard
+                label="Avg Win/Loss"
+                value={`$${(stats?.avgWin || 0).toFixed(2)}`}
+                subtitle={`Avg Loss: $${(stats?.avgLoss || 0).toFixed(2)}`}
+              />
+            </div>
+
+            {/* Performance Charts */}
+            <div className="mb-8">
+              <PerformanceCharts
+                plOverTimeData={plOverTimeData}
+                tickerPerformanceData={tickerPerformanceData}
+                winLossData={winLossData}
+              />
+            </div>
+
+            {/* By Ticker Table */}
+            <div className="bg-card border border-border rounded-lg overflow-hidden mb-8">
+              <div className="px-6 py-4 border-b border-border">
+                <h2 className="text-lg font-semibold">By Ticker</h2>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-border bg-secondary/50">
+                      <th className="px-6 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Ticker</th>
+                      <th className="px-6 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Total Trades</th>
+                      <th className="px-6 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Open</th>
+                      <th className="px-6 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Closed</th>
+                      <th className="px-6 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">W/L</th>
+                      <th className="px-6 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">P&L</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {byTicker.map((ticker: any, index: number) => (
+                      <tr key={index} className="border-b border-border hover:bg-secondary/30 transition-colors">
+                        <td className="px-6 py-4">{ticker.ticker}</td>
+                        <td className="px-6 py-4">{ticker.totalTrades}</td>
+                        <td className="px-6 py-4">{ticker.openTrades}</td>
+                        <td className="px-6 py-4">{ticker.closedTrades}</td>
+                        <td className="px-6 py-4">
+                          {ticker.winningTrades}/{ticker.losingTrades} ({((ticker.winningTrades / (ticker.winningTrades + ticker.losingTrades)) * 100 || 0).toFixed(1)}%)
+                        </td>
+                        <td className={`px-6 py-4 ${ticker.totalPnl < 0 ? 'text-destructive' : 'text-success'}`}>
+                          ${ticker.totalPnl.toFixed(2)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Webhook Configuration */}
+            <div className="bg-card border border-border rounded-lg overflow-hidden">
+              <div className="px-6 py-4 border-b border-border">
+                <h2 className="text-lg font-semibold">Webhook Configuration</h2>
+                <p className="text-sm text-muted-foreground mt-1">Use the following endpoint in your TradingView alerts:</p>
+              </div>
+              <div className="p-6 space-y-4">
+                <div>
+                  <label className="text-sm text-muted-foreground mb-2 block">POST URL</label>
+                  <div className="bg-secondary border border-border rounded p-3 font-mono text-sm overflow-x-auto">
+                    {typeof window !== 'undefined' ? window.location.origin : ''}/api/webhook
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm text-muted-foreground mb-2 block">Payload Format</label>
+                  <div className="bg-secondary border border-border rounded p-4 font-mono text-sm overflow-x-auto">
+                    <pre className="text-muted-foreground">{`{
   "secret": "your-webhook-secret",
   "action": "entry",
-  "ticker": "AAPL",
-  "price": 150.25,
+  "ticker": "MNQ",
+  "price": 150.50,
   "direction": "long",
   "takeProfit": 155.00,
   "stopLoss": 148.00,
   "quantity": 10
-}`}
-          </pre>
-        </div>
+}`}</pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
