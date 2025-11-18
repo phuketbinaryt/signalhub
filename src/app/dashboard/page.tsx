@@ -399,7 +399,7 @@ export default function Dashboard() {
                         <td className="px-6 py-4">{ticker.openTrades}</td>
                         <td className="px-6 py-4">{ticker.closedTrades}</td>
                         <td className="px-6 py-4">
-                          {ticker.winningTrades}/{ticker.losingTrades} ({((ticker.winningTrades / (ticker.winningTrades + ticker.losingTrades)) * 100 || 0).toFixed(1)}%)
+                          {ticker.wins}/{ticker.losses} ({((ticker.wins / (ticker.wins + ticker.losses)) * 100 || 0).toFixed(1)}%)
                         </td>
                         <td className={`px-6 py-4 ${ticker.totalPnl < 0 ? 'text-destructive' : 'text-success'}`}>
                           ${ticker.totalPnl.toFixed(2)}
