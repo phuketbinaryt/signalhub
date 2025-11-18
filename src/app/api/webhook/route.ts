@@ -235,6 +235,8 @@ export async function POST(request: NextRequest) {
 async function handleEntry(payload: WebhookPayload) {
   const { ticker, price, direction, takeProfit, stopLoss, quantity } = payload;
 
+  console.log(`📥 Entry Payload - Ticker: ${ticker}, Price: ${price}, Direction: ${direction}, Quantity: ${quantity}, Type: ${typeof quantity}`);
+
   // Create new trade
   const trade = await prisma.trade.create({
     data: {
@@ -258,7 +260,7 @@ async function handleEntry(payload: WebhookPayload) {
     },
   });
 
-  console.log(`✅ Trade opened [ID: ${trade.id}] ${ticker} ${direction?.toUpperCase()} @ ${price} | SL: ${stopLoss || 'N/A'} | TP: ${takeProfit || 'N/A'} | Qty: ${quantity || 1}`);
+  console.log(`✅ Trade opened [ID: ${trade.id}] ${ticker} ${direction?.toUpperCase()} @ ${price} | SL: ${stopLoss || 'N/A'} | TP: ${takeProfit || 'N/A'} | Qty: ${trade.quantity} (saved: ${quantity || 1})`);
   return trade;
 }
 
@@ -280,6 +282,8 @@ async function handleTakeProfit(payload: WebhookPayload) {
     console.warn(`⚠️ No open trade found for ticker ${ticker} - cannot process take profit`);
     return null;
   }
+
+  console.log(`🔍 Found open trade [ID: ${openTrade.id}] for ${ticker} - Quantity from DB: ${openTrade.quantity}, Type: ${typeof openTrade.quantity}`);
 
   // Calculate P&L
   const pnl = calculatePnL(openTrade, price);
@@ -331,6 +335,8 @@ async function handleStopLoss(payload: WebhookPayload) {
     return null;
   }
 
+  console.log(`🔍 Found open trade [ID: ${openTrade.id}] for ${ticker} - Quantity from DB: ${openTrade.quantity}, Type: ${typeof openTrade.quantity}`);
+
   // Calculate P&L
   const pnl = calculatePnL(openTrade, price);
   const pnlPercent = ((price - openTrade.entryPrice) / openTrade.entryPrice) * 100;
@@ -367,9 +373,16 @@ function calculatePnL(trade: any, exitPrice: number): number {
   const quantity = trade.quantity || 1;
   const direction = trade.direction;
 
+  console.log(`📊 P&L Calculation - Entry: ${entryPrice}, Exit: ${exitPrice}, Direction: ${direction}, Quantity: ${quantity}, Trade ID: ${trade.id}`);
+
+  let pnl;
   if (direction === 'long') {
-    return (exitPrice - entryPrice) * quantity;
+    pnl = (exitPrice - entryPrice) * quantity;
   } else {
-    return (entryPrice - exitPrice) * quantity;
+    pnl = (entryPrice - exitPrice) * quantity;
   }
+
+  console.log(`💰 Calculated P&L: $${pnl.toFixed(2)} (${(exitPrice - entryPrice).toFixed(2)} points × ${quantity} contracts)`);
+
+  return pnl;
 }
