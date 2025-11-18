@@ -1,0 +1,44 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Trade {
+  id           Int           @id @default(autoincrement())
+  ticker       String
+  direction    String        // "long" or "short"
+  entryPrice   Float
+  takeProfit   Float?
+  stopLoss     Float?
+  quantity     Float         @default(1.0)
+  status       String        @default("open") // "open" | "closed"
+  openedAt     DateTime      @default(now())
+  closedAt     DateTime?
+  exitPrice    Float?
+  exitReason   String?       // "take_profit" | "stop_loss" | "manual" | other
+  pnl          Float?        // profit/loss in points or currency
+  pnlPercent   Float?        // percentage P&L
+
+  events       TradeEvent[]
+
+  @@index([ticker])
+  @@index([status])
+  @@index([openedAt])
+}
+
+model TradeEvent {
+  id         Int       @id @default(autoincrement())
+  trade      Trade     @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+  tradeId    Int
+  eventType  String    // "entry" | "take_profit" | "stop_loss"
+  price      Float
+  createdAt  DateTime  @default(now())
+  rawPayload Json      // store original webhook body
+
+  @@index([tradeId])
+  @@index([eventType])
+}
