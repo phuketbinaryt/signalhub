@@ -75,7 +75,7 @@ export default function Dashboard() {
   const plOverTimeData = trades
     .filter((t: any) => t.status === 'closed' && t.closedAt)
     .map((t: any) => ({
-      date: new Date(t.closedAt).toLocaleDateString('en-US', { month: '1-digit', day: '1-digit' }),
+      date: new Date(t.closedAt).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' }),
       pnl: t.pnl || 0,
     }))
     .slice(0, 7)
@@ -225,7 +225,7 @@ export default function Dashboard() {
                           {trade.pnlPercent ? `${trade.pnlPercent >= 0 ? '+' : ''}${trade.pnlPercent.toFixed(2)}%` : '-'}
                         </td>
                         <td className="px-4 py-4 text-muted-foreground">
-                          {new Date(trade.openedAt).toLocaleDateString('en-US', { month: '1-digit', day: '1-digit', year: 'numeric' })}
+                          {new Date(trade.openedAt).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })}
                         </td>
                       </tr>
                     ))}
