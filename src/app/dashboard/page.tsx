@@ -9,6 +9,12 @@ import { TrendingUp, TrendingDown, Trash2 } from 'lucide-react';
 
 interface TradeData {
   trades: any[];
+  pagination: {
+    total: number;
+    limit: number;
+    offset: number;
+    hasMore: boolean;
+  };
   stats: {
     overall: {
       totalTrades: number;
@@ -31,10 +37,12 @@ export default function Dashboard() {
   const [selectedTicker, setSelectedTicker] = useState('all');
   const [timePeriod, setTimePeriod] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const TRADES_PER_PAGE = 25;
 
   useEffect(() => {
     fetchTrades();
-  }, [selectedTicker, statusFilter]);
+  }, [selectedTicker, statusFilter, currentPage]);
 
   const fetchTrades = async () => {
     try {
@@ -48,6 +56,10 @@ export default function Dashboard() {
       if (statusFilter !== 'all') {
         params.append('status', statusFilter);
       }
+
+      // Add pagination params
+      params.append('limit', TRADES_PER_PAGE.toString());
+      params.append('offset', ((currentPage - 1) * TRADES_PER_PAGE).toString());
 
       const response = await fetch(`/api/trades?${params.toString()}`);
 
@@ -134,7 +146,10 @@ export default function Dashboard() {
             <span className="text-sm text-muted-foreground">State:</span>
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setCurrentPage(1);
+              }}
               className="bg-secondary border border-border rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <option value="all">All</option>
@@ -155,7 +170,10 @@ export default function Dashboard() {
             <span className="text-sm text-muted-foreground">Ticker:</span>
             <select
               value={selectedTicker}
-              onChange={(e) => setSelectedTicker(e.target.value)}
+              onChange={(e) => {
+                setSelectedTicker(e.target.value);
+                setCurrentPage(1);
+              }}
               className="bg-secondary border border-border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary min-w-[120px]"
             >
               <option value="all">All Tickers</option>
@@ -265,6 +283,62 @@ export default function Dashboard() {
                   </tbody>
                 </table>
               </div>
+
+              {/* Pagination Controls */}
+              {tradeData && tradeData.pagination && (
+                <div className="px-6 py-4 border-t border-border flex items-center justify-between">
+                  <div className="text-sm text-muted-foreground">
+                    Showing {((currentPage - 1) * TRADES_PER_PAGE) + 1} to{' '}
+                    {Math.min(currentPage * TRADES_PER_PAGE, tradeData.pagination.total)} of{' '}
+                    {tradeData.pagination.total} trades
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                      variant="outline"
+                      size="sm"
+                    >
+                      Previous
+                    </Button>
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: Math.ceil(tradeData.pagination.total / TRADES_PER_PAGE) }, (_, i) => i + 1)
+                        .filter(page => {
+                          // Show first page, last page, current page, and pages around current
+                          const totalPages = Math.ceil(tradeData.pagination.total / TRADES_PER_PAGE);
+                          return page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1;
+                        })
+                        .map((page, index, array) => {
+                          // Add ellipsis if there's a gap
+                          const prevPage = array[index - 1];
+                          const showEllipsis = prevPage && page - prevPage > 1;
+
+                          return (
+                            <div key={page} className="flex items-center gap-1">
+                              {showEllipsis && <span className="px-2 text-muted-foreground">...</span>}
+                              <Button
+                                onClick={() => setCurrentPage(page)}
+                                variant={currentPage === page ? "default" : "outline"}
+                                size="sm"
+                                className={currentPage === page ? "bg-primary hover:bg-primary/90" : ""}
+                              >
+                                {page}
+                              </Button>
+                            </div>
+                          );
+                        })}
+                    </div>
+                    <Button
+                      onClick={() => setCurrentPage(prev => prev + 1)}
+                      disabled={!tradeData.pagination.hasMore}
+                      variant="outline"
+                      size="sm"
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Stats Grid */}
