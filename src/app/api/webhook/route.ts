@@ -11,11 +11,113 @@ interface WebhookPayload {
   takeProfit?: number;
   stopLoss?: number;
   quantity?: number;
+  content?: string; // For text-based format
+}
+
+// Parse text-based webhook format
+function parseTextWebhook(content: string): Partial<WebhookPayload> | null {
+  try {
+    // Entry signals
+    if (content.includes('BUY Signal') && !content.includes('SKIPPED')) {
+      const tickerMatch = content.match(/^[^\s]+\s+(\w+)\s+BUY/);
+      const entryMatch = content.match(/Entry:\s*([\d.]+)/);
+      const slMatch = content.match(/SL:\s*([\d.]+)/);
+      const tpMatch = content.match(/TP:\s*([\d.]+)/);
+      const contractsMatch = content.match(/Contracts:\s*(\d+)/);
+
+      if (tickerMatch && entryMatch) {
+        return {
+          action: 'entry',
+          ticker: tickerMatch[1],
+          price: parseFloat(entryMatch[1]),
+          direction: 'long',
+          stopLoss: slMatch ? parseFloat(slMatch[1]) : undefined,
+          takeProfit: tpMatch ? parseFloat(tpMatch[1]) : undefined,
+          quantity: contractsMatch ? parseInt(contractsMatch[1]) : 1,
+        };
+      }
+    }
+
+    if (content.includes('SELL Signal') && !content.includes('SKIPPED')) {
+      const tickerMatch = content.match(/^[^\s]+\s+(\w+)\s+SELL/);
+      const entryMatch = content.match(/Entry:\s*([\d.]+)/);
+      const slMatch = content.match(/SL:\s*([\d.]+)/);
+      const tpMatch = content.match(/TP:\s*([\d.]+)/);
+      const contractsMatch = content.match(/Contracts:\s*(\d+)/);
+
+      if (tickerMatch && entryMatch) {
+        return {
+          action: 'entry',
+          ticker: tickerMatch[1],
+          price: parseFloat(entryMatch[1]),
+          direction: 'short',
+          stopLoss: slMatch ? parseFloat(slMatch[1]) : undefined,
+          takeProfit: tpMatch ? parseFloat(tpMatch[1]) : undefined,
+          quantity: contractsMatch ? parseInt(contractsMatch[1]) : 1,
+        };
+      }
+    }
+
+    // Take Profit
+    if (content.includes('Take Profit HIT')) {
+      const tickerMatch = content.match(/^[^\s]+\s+(\w+)\s+(?:BUY|SELL)/);
+      const exitMatch = content.match(/Exit:\s*([\d.]+)/);
+
+      if (tickerMatch && exitMatch) {
+        return {
+          action: 'take_profit',
+          ticker: tickerMatch[1],
+          price: parseFloat(exitMatch[1]),
+        };
+      }
+    }
+
+    // Stop Loss
+    if (content.includes('Stop Loss HIT')) {
+      const tickerMatch = content.match(/^[^\s]+\s+(\w+)\s+(?:BUY|SELL)/);
+      const exitMatch = content.match(/Exit:\s*([\d.]+)/);
+
+      if (tickerMatch && exitMatch) {
+        return {
+          action: 'stop_loss',
+          ticker: tickerMatch[1],
+          price: parseFloat(exitMatch[1]),
+        };
+      }
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error parsing text webhook:', error);
+    return null;
+  }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const payload: WebhookPayload = await request.json();
+    let rawPayload: any = await request.json();
+    let payload: WebhookPayload;
+
+    // Check if this is a text-based webhook (has "content" field)
+    if (rawPayload.content && typeof rawPayload.content === 'string') {
+      console.log('Received text-based webhook:', rawPayload.content);
+      const parsed = parseTextWebhook(rawPayload.content);
+
+      if (!parsed) {
+        return NextResponse.json(
+          { error: 'Unable to parse webhook content' },
+          { status: 400 }
+        );
+      }
+
+      payload = {
+        ...parsed,
+        secret: rawPayload.secret,
+      } as WebhookPayload;
+    } else {
+      // Standard JSON format
+      payload = rawPayload;
+    }
 
     // Validate webhook secret
     const expectedSecret = process.env.WEBHOOK_SECRET;
