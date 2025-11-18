@@ -207,7 +207,7 @@ export default function Dashboard() {
                       <th className="px-4 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Status</th>
                       <th className="px-4 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">P&L</th>
                       <th className="px-4 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">P&L %</th>
-                      <th className="px-4 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Spread</th>
+                      <th className="px-4 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Date</th>
                       <th className="px-4 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
