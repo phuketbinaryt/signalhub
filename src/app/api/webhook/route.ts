@@ -67,12 +67,14 @@ function parseTextWebhook(content: string): Partial<WebhookPayload> | null {
     if (content.includes('Take Profit HIT')) {
       const tickerMatch = content.match(/^[^\s]+\s+([A-Z0-9!@#$%^&*_+\-=]+)\s+(?:BUY|SELL)/i);
       const exitMatch = content.match(/Exit:\s*([\d.]+)/);
+      const pnlMatch = content.match(/P&L:\s*\$?(-?[\d.]+)/);
 
       if (tickerMatch && exitMatch) {
         return {
           action: 'take_profit',
           ticker: tickerMatch[1],
           price: parseFloat(exitMatch[1]),
+          pnl: pnlMatch ? parseFloat(pnlMatch[1]) : undefined,
         };
       }
     }
@@ -81,12 +83,14 @@ function parseTextWebhook(content: string): Partial<WebhookPayload> | null {
     if (content.includes('Stop Loss HIT')) {
       const tickerMatch = content.match(/^[^\s]+\s+([A-Z0-9!@#$%^&*_+\-=]+)\s+(?:BUY|SELL)/i);
       const exitMatch = content.match(/Exit:\s*([\d.]+)/);
+      const pnlMatch = content.match(/P&L:\s*\$?(-?[\d.]+)/);
 
       if (tickerMatch && exitMatch) {
         return {
           action: 'stop_loss',
           ticker: tickerMatch[1],
           price: parseFloat(exitMatch[1]),
+          pnl: pnlMatch ? parseFloat(pnlMatch[1]) : undefined,
         };
       }
     }
