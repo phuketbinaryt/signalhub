@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getCurrentUser } from '@/lib/auth';
 
 // Force dynamic rendering for this API route
 export const dynamic = 'force-dynamic';
@@ -8,12 +7,6 @@ export const revalidate = 0;
 
 export async function GET(request: NextRequest) {
   try {
-    // Check authentication
-    const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const { searchParams } = new URL(request.url);
     const ticker = searchParams.get('ticker');
     const status = searchParams.get('status');
