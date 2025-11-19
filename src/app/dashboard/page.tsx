@@ -262,42 +262,42 @@ export default function Dashboard() {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-border bg-secondary/50">
-                      <th className="px-4 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Ticker</th>
-                      <th className="px-4 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Strategy</th>
-                      <th className="px-4 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Direction</th>
-                      <th className="px-4 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Contracts</th>
-                      <th className="px-4 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Entry</th>
-                      <th className="px-4 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Exit (Profit Target)</th>
-                      <th className="px-4 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Stop Loss</th>
-                      <th className="px-4 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Limit</th>
-                      <th className="px-4 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Status</th>
-                      <th className="px-4 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">P&L</th>
-                      <th className="px-4 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">P&L %</th>
-                      <th className="px-4 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Date</th>
+                      <th className="px-2 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Ticker</th>
+                      <th className="px-2 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Strategy</th>
+                      <th className="px-2 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Dir</th>
+                      <th className="px-2 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Qty</th>
+                      <th className="px-2 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Entry</th>
+                      <th className="px-2 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Exit</th>
+                      <th className="px-2 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">SL</th>
+                      <th className="px-2 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">TP</th>
+                      <th className="px-2 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Status</th>
+                      <th className="px-2 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">P&L</th>
+                      <th className="px-2 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">P&L %</th>
+                      <th className="px-2 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Date</th>
                       <th
-                        className="px-4 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-primary transition-colors"
+                        className="px-2 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-primary transition-colors"
                         onClick={() => handleSort('time')}
                       >
-                        Time (NY) {sortBy === 'time' && (sortOrder === 'desc' ? '↓' : '↑')}
+                        Time {sortBy === 'time' && (sortOrder === 'desc' ? '↓' : '↑')}
                       </th>
-                      <th className="px-4 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Actions</th>
+                      <th className="px-2 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {trades.map((trade: any, index: number) => (
                       <tr key={index} className="border-b border-border hover:bg-secondary/30 transition-colors">
-                        <td className="px-4 py-4">{trade.ticker}</td>
-                        <td className="px-4 py-4">
+                        <td className="px-2 py-3 text-sm">{trade.ticker}</td>
+                        <td className="px-2 py-3">
                           {trade.strategy ? (
-                            <span className="inline-flex px-2 py-1 rounded text-xs bg-accent/20 text-accent-foreground">
+                            <span className="inline-flex px-1.5 py-0.5 rounded text-xs bg-accent/20 text-accent-foreground whitespace-nowrap">
                               {trade.strategy}
                             </span>
                           ) : (
-                            <span className="text-muted-foreground">-</span>
+                            <span className="text-muted-foreground text-sm">-</span>
                           )}
                         </td>
-                        <td className="px-4 py-4">
-                          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs ${
+                        <td className="px-2 py-3">
+                          <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs ${
                             trade.direction === 'short'
                               ? 'bg-destructive/20 text-destructive'
                               : 'bg-success/20 text-success'
@@ -307,40 +307,39 @@ export default function Dashboard() {
                             ) : (
                               <TrendingUp className="w-3 h-3" />
                             )}
-                            {trade.direction.toUpperCase()}
+                            {trade.direction === 'short' ? 'SHORT' : 'LONG'}
                           </span>
                         </td>
-                        <td className="px-4 py-4">{trade.quantity}</td>
-                        <td className="px-4 py-4">${trade.entryPrice.toFixed(2)}</td>
-                        <td className="px-4 py-4">
+                        <td className="px-2 py-3 text-sm">{trade.quantity}</td>
+                        <td className="px-2 py-3 text-sm">${trade.entryPrice.toFixed(2)}</td>
+                        <td className="px-2 py-3 text-sm">
                           {trade.exitPrice ? `$${trade.exitPrice.toFixed(2)}` : trade.takeProfit ? `$${trade.takeProfit.toFixed(2)}` : '-'}
                         </td>
-                        <td className="px-4 py-4">{trade.stopLoss ? `$${trade.stopLoss.toFixed(2)}` : '-'}</td>
-                        <td className="px-4 py-4">{trade.takeProfit ? `$${trade.takeProfit.toFixed(2)}` : '-'}</td>
-                        <td className="px-4 py-4">
-                          <span className="inline-flex px-2 py-1 rounded text-xs bg-muted text-foreground">
+                        <td className="px-2 py-3 text-sm">{trade.stopLoss ? `$${trade.stopLoss.toFixed(2)}` : '-'}</td>
+                        <td className="px-2 py-3 text-sm">{trade.takeProfit ? `$${trade.takeProfit.toFixed(2)}` : '-'}</td>
+                        <td className="px-2 py-3">
+                          <span className="inline-flex px-1.5 py-0.5 rounded text-xs bg-muted text-foreground">
                             {trade.status.toUpperCase()}
                           </span>
                         </td>
-                        <td className={`px-4 py-4 ${(trade.pnl || 0) < 0 ? 'text-destructive' : 'text-success'}`}>
+                        <td className={`px-2 py-3 text-sm ${(trade.pnl || 0) < 0 ? 'text-destructive' : 'text-success'}`}>
                           {trade.pnl ? `${trade.pnl >= 0 ? '+' : ''}$${trade.pnl.toFixed(2)}` : '-'}
                         </td>
-                        <td className={`px-4 py-4 ${(trade.pnlPercent || 0) < 0 ? 'text-destructive' : 'text-success'}`}>
+                        <td className={`px-2 py-3 text-sm ${(trade.pnlPercent || 0) < 0 ? 'text-destructive' : 'text-success'}`}>
                           {trade.pnlPercent ? `${trade.pnlPercent >= 0 ? '+' : ''}${trade.pnlPercent.toFixed(2)}%` : '-'}
                         </td>
-                        <td className="px-4 py-4 text-muted-foreground">
-                          {new Date(trade.openedAt).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })}
+                        <td className="px-2 py-3 text-sm text-muted-foreground whitespace-nowrap">
+                          {new Date(trade.openedAt).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' })}
                         </td>
-                        <td className="px-4 py-4 text-muted-foreground">
+                        <td className="px-2 py-3 text-sm text-muted-foreground whitespace-nowrap">
                           {new Date(trade.openedAt).toLocaleTimeString('en-US', {
                             timeZone: 'America/New_York',
                             hour: '2-digit',
                             minute: '2-digit',
-                            second: '2-digit',
                             hour12: true
                           })}
                         </td>
-                        <td className="px-4 py-4">
+                        <td className="px-2 py-3">
                           <ActionsDropdown onDelete={() => handleDelete(trade.id)} />
                         </td>
                       </tr>
