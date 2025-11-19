@@ -9,6 +9,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const ticker = searchParams.get('ticker');
+    const strategy = searchParams.get('strategy');
     const status = searchParams.get('status');
     const limit = parseInt(searchParams.get('limit') || '100');
     const offset = parseInt(searchParams.get('offset') || '0');
@@ -17,6 +18,9 @@ export async function GET(request: NextRequest) {
     const where: any = {};
     if (ticker) {
       where.ticker = ticker;
+    }
+    if (strategy) {
+      where.strategy = strategy;
     }
     if (status) {
       where.status = status;

@@ -15,6 +15,7 @@ model Trade {
   takeProfit   Float?
   stopLoss     Float?
   quantity     Float         @default(1.0)
+  strategy     String?       // Strategy name from TradingView
   status       String        @default("open") // "open" | "closed"
   openedAt     DateTime      @default(now())
   closedAt     DateTime?

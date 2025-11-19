@@ -5,7 +5,8 @@ import { StatCard } from '@/components/StatCard';
 import { ToggleGroup } from '@/components/ToggleGroup';
 import { PerformanceCharts } from '@/components/PerformanceCharts';
 import { Button } from '@/components/ui/button';
-import { TrendingUp, TrendingDown, Trash2 } from 'lucide-react';
+import { ActionsDropdown } from '@/components/ActionsDropdown';
+import { TrendingUp, TrendingDown } from 'lucide-react';
 
 interface TradeData {
   trades: any[];
@@ -35,6 +36,7 @@ export default function Dashboard() {
   const [tradeData, setTradeData] = useState<TradeData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedTicker, setSelectedTicker] = useState('all');
+  const [selectedStrategy, setSelectedStrategy] = useState('all');
   const [timePeriod, setTimePeriod] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
@@ -44,7 +46,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchTrades();
-  }, [selectedTicker, statusFilter, currentPage]);
+  }, [selectedTicker, selectedStrategy, statusFilter, currentPage]);
 
   const fetchTrades = async () => {
     try {
@@ -53,6 +55,10 @@ export default function Dashboard() {
 
       if (selectedTicker !== 'all') {
         params.append('ticker', selectedTicker);
+      }
+
+      if (selectedStrategy !== 'all') {
+        params.append('strategy', selectedStrategy);
       }
 
       if (statusFilter !== 'all') {
@@ -125,8 +131,9 @@ export default function Dashboard() {
     }
   };
 
-  // Get unique tickers for dropdown
+  // Get unique tickers and strategies for dropdowns
   const tickers = Array.from(new Set(trades.map((t: any) => t.ticker)));
+  const strategies = Array.from(new Set(trades.map((t: any) => t.strategy).filter(Boolean)));
 
   // Prepare chart data
   const plOverTimeData = trades
@@ -206,6 +213,23 @@ export default function Dashboard() {
                 </option>
               ))}
             </select>
+
+            <span className="text-sm text-muted-foreground">Strategy:</span>
+            <select
+              value={selectedStrategy}
+              onChange={(e) => {
+                setSelectedStrategy(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="bg-secondary border border-border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary min-w-[120px]"
+            >
+              <option value="all">All Strategies</option>
+              {strategies.map((strategy: string) => (
+                <option key={strategy} value={strategy}>
+                  {strategy}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="flex items-center gap-3">
@@ -239,6 +263,7 @@ export default function Dashboard() {
                   <thead>
                     <tr className="border-b border-border bg-secondary/50">
                       <th className="px-4 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Ticker</th>
+                      <th className="px-4 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Strategy</th>
                       <th className="px-4 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Direction</th>
                       <th className="px-4 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Contracts</th>
                       <th className="px-4 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Entry</th>
@@ -262,6 +287,15 @@ export default function Dashboard() {
                     {trades.map((trade: any, index: number) => (
                       <tr key={index} className="border-b border-border hover:bg-secondary/30 transition-colors">
                         <td className="px-4 py-4">{trade.ticker}</td>
+                        <td className="px-4 py-4">
+                          {trade.strategy ? (
+                            <span className="inline-flex px-2 py-1 rounded text-xs bg-accent/20 text-accent-foreground">
+                              {trade.strategy}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </td>
                         <td className="px-4 py-4">
                           <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs ${
                             trade.direction === 'short'
@@ -307,14 +341,7 @@ export default function Dashboard() {
                           })}
                         </td>
                         <td className="px-4 py-4">
-                          <button
-                            onClick={() => handleDelete(trade.id)}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-primary hover:bg-primary/90 text-white rounded text-xs font-medium transition-colors"
-                            title="Delete trade"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                            Delete
-                          </button>
+                          <ActionsDropdown onDelete={() => handleDelete(trade.id)} />
                         </td>
                       </tr>
                     ))}

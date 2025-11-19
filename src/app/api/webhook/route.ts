@@ -16,12 +16,17 @@ interface WebhookPayload {
   stopLoss?: number;
   quantity?: number;
   pnl?: number; // P&L from TradingView
+  strategy?: string; // Strategy name from TradingView
   content?: string; // For text-based format
 }
 
 // Parse text-based webhook format
 function parseTextWebhook(content: string): Partial<WebhookPayload> | null {
   try {
+    // Extract strategy name (common to all signal types)
+    const strategyMatch = content.match(/Strategy:\s*([^\s|]+)/);
+    const strategy = strategyMatch ? strategyMatch[1] : undefined;
+
     // Entry signals
     if (content.includes('BUY Signal') && !content.includes('SKIPPED')) {
       const tickerMatch = content.match(/^[^\s]+\s+([A-Z0-9!@#$%^&*_+\-=]+)\s+BUY/i);
@@ -39,6 +44,7 @@ function parseTextWebhook(content: string): Partial<WebhookPayload> | null {
           stopLoss: slMatch ? parseFloat(slMatch[1]) : undefined,
           takeProfit: tpMatch ? parseFloat(tpMatch[1]) : undefined,
           quantity: contractsMatch ? parseInt(contractsMatch[1]) : 1,
+          strategy,
         };
       }
     }
@@ -59,6 +65,7 @@ function parseTextWebhook(content: string): Partial<WebhookPayload> | null {
           stopLoss: slMatch ? parseFloat(slMatch[1]) : undefined,
           takeProfit: tpMatch ? parseFloat(tpMatch[1]) : undefined,
           quantity: contractsMatch ? parseInt(contractsMatch[1]) : 1,
+          strategy,
         };
       }
     }
@@ -238,9 +245,9 @@ export async function POST(request: NextRequest) {
 }
 
 async function handleEntry(payload: WebhookPayload) {
-  const { ticker, price, direction, takeProfit, stopLoss, quantity } = payload;
+  const { ticker, price, direction, takeProfit, stopLoss, quantity, strategy } = payload;
 
-  console.log(`📥 Entry Payload - Ticker: ${ticker}, Price: ${price}, Direction: ${direction}, Quantity: ${quantity}, Type: ${typeof quantity}`);
+  console.log(`📥 Entry Payload - Ticker: ${ticker}, Price: ${price}, Direction: ${direction}, Quantity: ${quantity}, Strategy: ${strategy || 'N/A'}, Type: ${typeof quantity}`);
 
   // Create new trade
   const trade = await prisma.trade.create({
@@ -251,6 +258,7 @@ async function handleEntry(payload: WebhookPayload) {
       takeProfit,
       stopLoss,
       quantity: quantity || 1.0,
+      strategy,
       status: 'open',
       events: {
         create: {
@@ -265,7 +273,7 @@ async function handleEntry(payload: WebhookPayload) {
     },
   });
 
-  console.log(`✅ Trade opened [ID: ${trade.id}] ${ticker} ${direction?.toUpperCase()} @ ${price} | SL: ${stopLoss || 'N/A'} | TP: ${takeProfit || 'N/A'} | Qty: ${trade.quantity} (saved: ${quantity || 1})`);
+  console.log(`✅ Trade opened [ID: ${trade.id}] ${ticker} ${direction?.toUpperCase()} @ ${price} | Strategy: ${strategy || 'N/A'} | SL: ${stopLoss || 'N/A'} | TP: ${takeProfit || 'N/A'} | Qty: ${trade.quantity} (saved: ${quantity || 1})`);
   return trade;
 }
 
