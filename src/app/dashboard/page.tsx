@@ -38,6 +38,8 @@ export default function Dashboard() {
   const [timePeriod, setTimePeriod] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
+  const [sortBy, setSortBy] = useState<'time' | 'ticker'>('time');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const TRADES_PER_PAGE = 25;
 
   useEffect(() => {
@@ -99,8 +101,29 @@ export default function Dashboard() {
   };
 
   const stats = tradeData?.stats.overall;
-  const trades = tradeData?.trades || [];
   const byTicker = tradeData?.stats.byTicker || [];
+
+  // Sort trades based on selected sort option
+  const trades = (tradeData?.trades || []).sort((a: any, b: any) => {
+    if (sortBy === 'time') {
+      const timeA = new Date(a.openedAt).getTime();
+      const timeB = new Date(b.openedAt).getTime();
+      return sortOrder === 'desc' ? timeB - timeA : timeA - timeB;
+    }
+    // ticker sort
+    return sortOrder === 'desc'
+      ? b.ticker.localeCompare(a.ticker)
+      : a.ticker.localeCompare(b.ticker);
+  });
+
+  const handleSort = (column: 'time' | 'ticker') => {
+    if (sortBy === column) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(column);
+      setSortOrder('desc');
+    }
+  };
 
   // Get unique tickers for dropdown
   const tickers = Array.from(new Set(trades.map((t: any) => t.ticker)));
@@ -226,6 +249,12 @@ export default function Dashboard() {
                       <th className="px-4 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">P&L</th>
                       <th className="px-4 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">P&L %</th>
                       <th className="px-4 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Date</th>
+                      <th
+                        className="px-4 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-primary transition-colors"
+                        onClick={() => handleSort('time')}
+                      >
+                        Time (NY) {sortBy === 'time' && (sortOrder === 'desc' ? '↓' : '↑')}
+                      </th>
                       <th className="px-4 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
@@ -267,6 +296,15 @@ export default function Dashboard() {
                         </td>
                         <td className="px-4 py-4 text-muted-foreground">
                           {new Date(trade.openedAt).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })}
+                        </td>
+                        <td className="px-4 py-4 text-muted-foreground">
+                          {new Date(trade.openedAt).toLocaleTimeString('en-US', {
+                            timeZone: 'America/New_York',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit',
+                            hour12: true
+                          })}
                         </td>
                         <td className="px-4 py-4">
                           <button
