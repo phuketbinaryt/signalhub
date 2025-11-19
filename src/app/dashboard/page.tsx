@@ -48,6 +48,15 @@ export default function Dashboard() {
     fetchTrades();
   }, [selectedTicker, selectedStrategy, statusFilter, currentPage]);
 
+  // Auto-refresh every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchTrades();
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [selectedTicker, selectedStrategy, statusFilter, currentPage]);
+
   const fetchTrades = async () => {
     try {
       setLoading(true);
