@@ -201,13 +201,13 @@ export default function Dashboard() {
       <header className="border-b border-border bg-card/50 backdrop-blur-sm">
         <div className="container mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded flex items-center justify-center">
+            <div className="flex items-center gap-3">
+              <div className="bg-white/10 p-1.5 rounded-lg border border-border">
                 <Image
                   src="/logo/logo.png"
                   alt="Logo"
-                  width={32}
-                  height={32}
+                  width={40}
+                  height={40}
                   className="rounded"
                 />
               </div>
