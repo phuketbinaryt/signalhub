@@ -37,7 +37,7 @@ export async function forwardToTelegram(payload: any): Promise<void> {
 }
 
 function formatTelegramMessage(payload: any): string {
-  const { action, ticker, price, direction, takeProfit, stopLoss, pnl, pnlPercent, entryPrice, strategy } = payload;
+  const { action, ticker, price, direction, takeProfit, stopLoss, pnl, pnlPercent, entryPrice, strategy, quantity } = payload;
 
   const emoji = action === 'entry' ? '🟢' : action === 'take_profit' ? '🎯' : '🛑';
 
@@ -52,6 +52,10 @@ function formatTelegramMessage(payload: any): string {
 
   if (direction) {
     message += `*Direction:* ${direction.toUpperCase()}\n`;
+  }
+
+  if (quantity) {
+    message += `*Position Size:* ${quantity} contract${quantity > 1 ? 's' : ''}\n`;
   }
 
   // For entry signals, show TP/SL targets
