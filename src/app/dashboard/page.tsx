@@ -240,8 +240,8 @@ export default function Dashboard() {
             <Image
               src="/logo/logo.png"
               alt="Logo"
-              width={160}
-              height={160}
+              width={200}
+              height={200}
               className="object-contain"
               priority
             />
