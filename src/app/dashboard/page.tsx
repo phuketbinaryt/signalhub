@@ -6,7 +6,10 @@ import { ToggleGroup } from '@/components/ToggleGroup';
 import { PerformanceCharts } from '@/components/PerformanceCharts';
 import { Button } from '@/components/ui/button';
 import { ActionsDropdown } from '@/components/ActionsDropdown';
+import { SoundSettings } from '@/components/SoundSettings';
+import { useSoundNotifications } from '@/hooks/useSoundNotifications';
 import { TrendingUp, TrendingDown } from 'lucide-react';
+import Image from 'next/image';
 
 interface TradeData {
   trades: any[];
@@ -44,6 +47,9 @@ export default function Dashboard() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const TRADES_PER_PAGE = 25;
 
+  // Sound notifications
+  const { soundEnabled, setSoundEnabled, volume, setVolume, playSound } = useSoundNotifications();
+
   useEffect(() => {
     fetchTrades();
   }, [selectedTicker, selectedStrategy, statusFilter, currentPage]);
@@ -57,6 +63,12 @@ export default function Dashboard() {
         const data = JSON.parse(event.data);
         if (data.type === 'trade_update') {
           console.log('📡 Real-time update received:', data);
+
+          // Play sound notification
+          if (data.action) {
+            playSound(data.action);
+          }
+
           // Refresh trades when new signal comes in
           fetchTrades();
         }
@@ -73,7 +85,7 @@ export default function Dashboard() {
     return () => {
       eventSource.close();
     };
-  }, [selectedTicker, selectedStrategy, statusFilter, currentPage]);
+  }, [selectedTicker, selectedStrategy, statusFilter, currentPage, playSound]);
 
   const fetchTrades = async () => {
     try {
@@ -190,8 +202,14 @@ export default function Dashboard() {
         <div className="container mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-primary rounded flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 text-white" />
+              <div className="w-8 h-8 rounded flex items-center justify-center">
+                <Image
+                  src="/logo/logo.png"
+                  alt="Logo"
+                  width={32}
+                  height={32}
+                  className="rounded"
+                />
               </div>
               <div>
                 <h1 className="text-xl font-semibold">Trading Dashboard</h1>
@@ -213,6 +231,12 @@ export default function Dashboard() {
               <option value="open">Open</option>
               <option value="closed">Closed</option>
             </select>
+            <SoundSettings
+              soundEnabled={soundEnabled}
+              setSoundEnabled={setSoundEnabled}
+              volume={volume}
+              setVolume={setVolume}
+            />
             <Button onClick={fetchTrades} className="bg-primary hover:bg-primary/90">
               Refresh
             </Button>
