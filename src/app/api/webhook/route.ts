@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { dispatchForwarders } from '@/lib/forwarders';
-import { notifyClients } from '@/app/api/events/route';
+import { notifyClients } from '@/lib/sse';
 
 // Force dynamic rendering for this API route
 export const dynamic = 'force-dynamic';
