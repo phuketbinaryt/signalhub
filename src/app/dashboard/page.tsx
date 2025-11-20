@@ -48,13 +48,31 @@ export default function Dashboard() {
     fetchTrades();
   }, [selectedTicker, selectedStrategy, statusFilter, currentPage]);
 
-  // Auto-refresh every 30 seconds
+  // Real-time updates via Server-Sent Events
   useEffect(() => {
-    const interval = setInterval(() => {
-      fetchTrades();
-    }, 30000); // 30 seconds
+    const eventSource = new EventSource('/api/events');
 
-    return () => clearInterval(interval);
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'trade_update') {
+          console.log('📡 Real-time update received:', data);
+          // Refresh trades when new signal comes in
+          fetchTrades();
+        }
+      } catch (error) {
+        console.error('Error parsing SSE message:', error);
+      }
+    };
+
+    eventSource.onerror = (error) => {
+      console.error('SSE connection error:', error);
+      eventSource.close();
+    };
+
+    return () => {
+      eventSource.close();
+    };
   }, [selectedTicker, selectedStrategy, statusFilter, currentPage]);
 
   const fetchTrades = async () => {
