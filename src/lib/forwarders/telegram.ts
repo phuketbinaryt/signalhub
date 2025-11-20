@@ -41,7 +41,13 @@ function formatTelegramMessage(payload: any): string {
 
   const emoji = action === 'entry' ? '🟢' : action === 'take_profit' ? '🎯' : '🛑';
 
-  let message = `${emoji} *${action.toUpperCase().replace('_', ' ')}* Signal\n\n`;
+  // For entry signals, use BUY/SELL instead of ENTRY
+  let signalType = action.toUpperCase().replace('_', ' ');
+  if (action === 'entry' && direction) {
+    signalType = direction.toUpperCase() === 'LONG' ? 'BUY' : 'SELL';
+  }
+
+  let message = `${emoji} *${signalType}* Signal\n\n`;
   message += `*Ticker:* ${ticker}\n`;
 
   if (strategy) {
