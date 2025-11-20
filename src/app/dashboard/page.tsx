@@ -237,15 +237,14 @@ export default function Dashboard() {
       <header className="border-b border-border bg-card/50 backdrop-blur-sm">
         <div className="container mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="bg-white/10 p-2 rounded-lg border border-border">
-              <Image
-                src="/logo/logo.png"
-                alt="Logo"
-                width={80}
-                height={80}
-                className="rounded"
-              />
-            </div>
+            <Image
+              src="/logo/logo.png"
+              alt="Logo"
+              width={160}
+              height={160}
+              className="object-contain"
+              priority
+            />
           </div>
           <div className="flex items-center gap-3">
             <span className="text-sm text-muted-foreground">State:</span>
