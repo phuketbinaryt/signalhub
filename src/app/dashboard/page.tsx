@@ -237,20 +237,14 @@ export default function Dashboard() {
       <header className="border-b border-border bg-card/50 backdrop-blur-sm">
         <div className="container mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-4">
-              <div className="bg-white/10 p-2 rounded-lg border border-border">
-                <Image
-                  src="/logo/logo.png"
-                  alt="Logo"
-                  width={80}
-                  height={80}
-                  className="rounded"
-                />
-              </div>
-              <div>
-                <h1 className="text-2xl font-semibold">Trading Dashboard</h1>
-                <p className="text-sm text-muted-foreground">Track your TradingView signals and performance</p>
-              </div>
+            <div className="bg-white/10 p-2 rounded-lg border border-border">
+              <Image
+                src="/logo/logo.png"
+                alt="Logo"
+                width={80}
+                height={80}
+                className="rounded"
+              />
             </div>
           </div>
           <div className="flex items-center gap-3">
