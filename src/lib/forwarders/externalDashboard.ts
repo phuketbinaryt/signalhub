@@ -1,14 +1,21 @@
 export async function forwardToExternalDashboard(payload: any): Promise<void> {
   const externalUrl = process.env.EXTERNAL_DASHBOARD_URL;
+  const externalSecret = process.env.EXTERNAL_DASHBOARD_SECRET;
 
   if (!externalUrl) {
     console.warn('External dashboard URL not configured, skipping external forward');
     return;
   }
 
+  if (!externalSecret) {
+    console.warn('External dashboard secret not configured, skipping external forward');
+    return;
+  }
+
   try {
     // Transform payload to external dashboard format
     const externalPayload = {
+      secret: externalSecret,
       symbol: payload.ticker,
       action: payload.action,
       price: payload.price,
