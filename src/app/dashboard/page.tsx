@@ -54,36 +54,72 @@ export default function Dashboard() {
     fetchTrades();
   }, [selectedTicker, selectedStrategy, statusFilter, currentPage]);
 
-  // Real-time updates via Server-Sent Events
+  // Real-time updates via Server-Sent Events with auto-reconnect
   useEffect(() => {
-    const eventSource = new EventSource('/api/events');
+    let eventSource: EventSource | null = null;
+    let reconnectTimeout: NodeJS.Timeout | null = null;
+    let reconnectAttempts = 0;
+    const maxReconnectDelay = 30000; // Max 30 seconds between reconnects
 
-    eventSource.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === 'trade_update') {
-          console.log('📡 Real-time update received:', data);
-
-          // Play sound notification
-          if (data.action) {
-            playSound(data.action);
-          }
-
-          // Refresh trades when new signal comes in
-          fetchTrades();
-        }
-      } catch (error) {
-        console.error('Error parsing SSE message:', error);
+    const connect = () => {
+      // Clean up existing connection
+      if (eventSource) {
+        eventSource.close();
       }
+
+      console.log('🔌 Connecting to SSE...');
+      eventSource = new EventSource('/api/events');
+
+      eventSource.onopen = () => {
+        console.log('✅ SSE connected');
+        reconnectAttempts = 0; // Reset on successful connection
+      };
+
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'trade_update') {
+            console.log('📡 Real-time update received:', data);
+
+            // Play sound notification
+            if (data.action) {
+              playSound(data.action);
+            }
+
+            // Refresh trades when new signal comes in
+            fetchTrades();
+          }
+        } catch (error) {
+          console.error('Error parsing SSE message:', error);
+        }
+      };
+
+      eventSource.onerror = (error) => {
+        console.error('❌ SSE connection error, will reconnect...', error);
+        eventSource?.close();
+
+        // Exponential backoff for reconnection
+        reconnectAttempts++;
+        const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), maxReconnectDelay);
+        console.log(`⏳ Reconnecting in ${delay / 1000} seconds (attempt ${reconnectAttempts})...`);
+
+        reconnectTimeout = setTimeout(() => {
+          connect();
+        }, delay);
+      };
     };
 
-    eventSource.onerror = (error) => {
-      console.error('SSE connection error:', error);
-      eventSource.close();
-    };
+    // Initial connection
+    connect();
 
+    // Cleanup
     return () => {
-      eventSource.close();
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
+      if (eventSource) {
+        eventSource.close();
+      }
     };
   }, [selectedTicker, selectedStrategy, statusFilter, currentPage, playSound]);
 
@@ -201,19 +237,19 @@ export default function Dashboard() {
       <header className="border-b border-border bg-card/50 backdrop-blur-sm">
         <div className="container mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-3">
-              <div className="bg-white/10 p-1.5 rounded-lg border border-border">
+            <div className="flex items-center gap-4">
+              <div className="bg-white/10 p-2 rounded-lg border border-border">
                 <Image
                   src="/logo/logo.png"
                   alt="Logo"
-                  width={40}
-                  height={40}
+                  width={80}
+                  height={80}
                   className="rounded"
                 />
               </div>
               <div>
-                <h1 className="text-xl font-semibold">Trading Dashboard</h1>
-                <p className="text-xs text-muted-foreground">Track your TradingView signals and performance</p>
+                <h1 className="text-2xl font-semibold">Trading Dashboard</h1>
+                <p className="text-sm text-muted-foreground">Track your TradingView signals and performance</p>
               </div>
             </div>
           </div>
