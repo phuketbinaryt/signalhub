@@ -31,7 +31,7 @@ export async function forwardToDiscord(payload: any): Promise<void> {
 }
 
 function formatDiscordMessage(payload: any) {
-  const { action, ticker, price, direction, takeProfit, stopLoss, pnl, pnlPercent, entryPrice } = payload;
+  const { action, ticker, price, direction, takeProfit, stopLoss, pnl, pnlPercent, entryPrice, strategy } = payload;
 
   const color = action === 'entry' ? 0x00ff00 : action === 'take_profit' ? 0x0099ff : 0xff0000;
   const emoji = action === 'entry' ? '🟢' : action === 'take_profit' ? '🎯' : '🛑';
@@ -41,6 +41,10 @@ function formatDiscordMessage(payload: any) {
     { name: 'Ticker', value: ticker, inline: true },
     { name: 'Price', value: `$${price}`, inline: true },
   ];
+
+  if (strategy) {
+    fields.push({ name: 'Strategy', value: strategy, inline: true });
+  }
 
   if (direction) {
     fields.push({ name: 'Direction', value: direction.toUpperCase(), inline: true });
