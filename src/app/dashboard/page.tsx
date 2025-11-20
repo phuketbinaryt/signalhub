@@ -54,7 +54,17 @@ export default function Dashboard() {
     fetchTrades();
   }, [selectedTicker, selectedStrategy, statusFilter, currentPage]);
 
-  // Real-time updates via Server-Sent Events with auto-reconnect
+  // Fallback: Auto-refresh every 30 seconds (reliable for serverless)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      console.log('🔄 Auto-refresh (30s polling)');
+      fetchTrades();
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [selectedTicker, selectedStrategy, statusFilter, currentPage]);
+
+  // Real-time updates via Server-Sent Events with auto-reconnect (bonus when it works)
   useEffect(() => {
     let eventSource: EventSource | null = null;
     let reconnectTimeout: NodeJS.Timeout | null = null;
