@@ -25,21 +25,31 @@ export async function forwardToExternalDashboard(payload: any): Promise<void> {
       positionSize: payload.quantity || 1,
     };
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
     const response = await fetch(externalUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(externalPayload),
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       throw new Error(`External dashboard webhook failed: ${response.status} ${response.statusText}`);
     }
 
     console.log('✅ Successfully forwarded to external dashboard:', externalPayload);
-  } catch (error) {
-    console.error('Failed to forward to external dashboard:', error);
+  } catch (error: any) {
+    if (error.name === 'AbortError') {
+      console.error('⏱️ External dashboard request timed out after 5 seconds');
+    } else {
+      console.error('❌ Failed to forward to external dashboard:', error.message);
+    }
     throw error;
   }
 }
