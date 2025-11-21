@@ -9,6 +9,7 @@ import { ActionsDropdown } from '@/components/ActionsDropdown';
 import { SoundSettings } from '@/components/SoundSettings';
 import { PushNotificationButton } from '@/components/PushNotificationButton';
 import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
+import { OpenTradesTable } from '@/components/OpenTradesTable';
 import { useSoundNotifications } from '@/hooks/useSoundNotifications';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import Image from 'next/image';
@@ -376,6 +377,12 @@ export default function Dashboard() {
           </div>
         ) : (
           <>
+            {/* Open Trades Table */}
+            <OpenTradesTable
+              trades={trades.filter((t: any) => t.status === 'open')}
+              getTickerColor={getTickerColor}
+            />
+
             {/* Recent Trades Table */}
             <div className="bg-card border border-border rounded-lg overflow-hidden mb-8">
               <div className="px-6 py-4 border-b border-border">
