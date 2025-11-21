@@ -43,3 +43,15 @@ model TradeEvent {
   @@index([tradeId])
   @@index([eventType])
 }
+
+model PushSubscription {
+  id         Int       @id @default(autoincrement())
+  endpoint   String    @unique
+  p256dh     String    // Public key for encryption
+  auth       String    // Auth secret for encryption
+  userAgent  String?   // Optional: track device type
+  createdAt  DateTime  @default(now())
+  lastUsed   DateTime  @default(now())
+
+  @@index([endpoint])
+}

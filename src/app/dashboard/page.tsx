@@ -7,6 +7,8 @@ import { PerformanceCharts } from '@/components/PerformanceCharts';
 import { Button } from '@/components/ui/button';
 import { ActionsDropdown } from '@/components/ActionsDropdown';
 import { SoundSettings } from '@/components/SoundSettings';
+import { PushNotificationButton } from '@/components/PushNotificationButton';
+import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
 import { useSoundNotifications } from '@/hooks/useSoundNotifications';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import Image from 'next/image';
@@ -269,6 +271,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background">
+      <PWAInstallPrompt />
       {/* Header */}
       <header className="border-b border-border bg-card/50 backdrop-blur-sm">
         <div className="container mx-auto px-6 py-4 flex items-center justify-between">
@@ -302,6 +305,7 @@ export default function Dashboard() {
               volume={volume}
               setVolume={setVolume}
             />
+            <PushNotificationButton />
             <Button onClick={fetchTrades} className="bg-primary hover:bg-primary/90">
               Refresh
             </Button>

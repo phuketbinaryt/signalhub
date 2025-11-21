@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { dispatchForwarders } from '@/lib/forwarders';
 import { notifyClients } from '@/lib/sse';
+import { sendPushNotification, formatTradeNotification } from '@/lib/webpush';
 
 // Force dynamic rendering for this API route
 export const dynamic = 'force-dynamic';
@@ -229,6 +230,11 @@ export async function POST(request: NextRequest) {
 
     dispatchForwarders(forwardPayload).catch((error) => {
       console.error('Error in webhook forwarding:', error);
+    });
+
+    // Send push notification
+    sendPushNotification(formatTradeNotification(forwardPayload)).catch((error) => {
+      console.error('Error sending push notification:', error);
     });
 
     // Notify connected dashboard clients about the new trade
