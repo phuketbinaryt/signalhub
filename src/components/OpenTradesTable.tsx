@@ -1,5 +1,7 @@
 'use client';
 
+import { useState, useEffect } from 'react';
+
 interface Trade {
   id: number;
   ticker: string;
@@ -7,7 +9,7 @@ interface Trade {
   entryPrice: number;
   strategy: string | null;
   openedAt: string;
-  positionSize: number;
+  quantity: number;
 }
 
 interface OpenTradesTableProps {
@@ -16,22 +18,35 @@ interface OpenTradesTableProps {
 }
 
 export function OpenTradesTable({ trades, getTickerColor }: OpenTradesTableProps) {
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Update time every second for live timer
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   // Calculate time open in human-readable format
   const getTimeOpen = (openedAt: string) => {
-    const now = new Date();
     const opened = new Date(openedAt);
-    const diffMs = now.getTime() - opened.getTime();
+    const diffMs = currentTime.getTime() - opened.getTime();
 
     const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
     const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
     const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
 
     if (days > 0) {
-      return `${days}d ${hours}h`;
+      return `${days}d ${hours}h ${minutes}m`;
     } else if (hours > 0) {
-      return `${hours}h ${minutes}m`;
+      return `${hours}h ${minutes}m ${seconds}s`;
+    } else if (minutes > 0) {
+      return `${minutes}m ${seconds}s`;
     } else {
-      return `${minutes}m`;
+      return `${seconds}s`;
     }
   };
 
@@ -93,7 +108,7 @@ export function OpenTradesTable({ trades, getTickerColor }: OpenTradesTableProps
                     ${trade.entryPrice.toFixed(2)}
                   </td>
                   <td className="p-4 text-sm">
-                    {trade.positionSize}
+                    {trade.quantity}
                   </td>
                   <td className="p-4 text-sm text-muted-foreground">
                     {trade.strategy || '-'}
