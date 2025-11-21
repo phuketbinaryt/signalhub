@@ -52,7 +52,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchTrades();
-  }, [selectedTicker, selectedStrategy, statusFilter, currentPage]);
+  }, [selectedTicker, selectedStrategy, statusFilter, timePeriod, currentPage]);
 
   // Fallback: Auto-refresh every 30 seconds (reliable for serverless)
   useEffect(() => {
@@ -62,7 +62,7 @@ export default function Dashboard() {
     }, 30000);
 
     return () => clearInterval(interval);
-  }, [selectedTicker, selectedStrategy, statusFilter, currentPage]);
+  }, [selectedTicker, selectedStrategy, statusFilter, timePeriod, currentPage]);
 
   // Real-time updates via Server-Sent Events with auto-reconnect (bonus when it works)
   useEffect(() => {
@@ -131,7 +131,7 @@ export default function Dashboard() {
         eventSource.close();
       }
     };
-  }, [selectedTicker, selectedStrategy, statusFilter, currentPage, playSound]);
+  }, [selectedTicker, selectedStrategy, statusFilter, timePeriod, currentPage, playSound]);
 
   const fetchTrades = async () => {
     try {
@@ -148,6 +148,10 @@ export default function Dashboard() {
 
       if (statusFilter !== 'all') {
         params.append('status', statusFilter);
+      }
+
+      if (timePeriod !== 'all') {
+        params.append('period', timePeriod);
       }
 
       // Add pagination params
@@ -354,7 +358,10 @@ export default function Dashboard() {
                 { value: 'all', label: 'All Time' }
               ]}
               value={timePeriod}
-              onChange={setTimePeriod}
+              onChange={(value) => {
+                setTimePeriod(value);
+                setCurrentPage(1);
+              }}
             />
           </div>
         </div>

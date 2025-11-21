@@ -11,6 +11,7 @@ export async function GET(request: NextRequest) {
     const ticker = searchParams.get('ticker');
     const strategy = searchParams.get('strategy');
     const status = searchParams.get('status');
+    const period = searchParams.get('period');
     const limit = parseInt(searchParams.get('limit') || '100');
     const offset = parseInt(searchParams.get('offset') || '0');
 
@@ -24,6 +25,28 @@ export async function GET(request: NextRequest) {
     }
     if (status) {
       where.status = status;
+    }
+
+    // Add time period filter
+    if (period && period !== 'all') {
+      const now = new Date();
+      let startDate = new Date();
+
+      switch (period) {
+        case 'daily':
+          startDate.setDate(now.getDate() - 1);
+          break;
+        case 'weekly':
+          startDate.setDate(now.getDate() - 7);
+          break;
+        case 'monthly':
+          startDate.setMonth(now.getMonth() - 1);
+          break;
+      }
+
+      where.openedAt = {
+        gte: startDate,
+      };
     }
 
     // Fetch trades with events
