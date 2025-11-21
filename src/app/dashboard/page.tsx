@@ -216,6 +216,28 @@ export default function Dashboard() {
     }
   };
 
+  // Generate consistent color for ticker badge
+  const getTickerColor = (ticker: string) => {
+    const colors = [
+      'rgb(59, 130, 246)', // blue
+      'rgb(16, 185, 129)', // green
+      'rgb(249, 115, 22)', // orange
+      'rgb(168, 85, 247)', // purple
+      'rgb(236, 72, 153)', // pink
+      'rgb(251, 191, 36)', // yellow
+      'rgb(20, 184, 166)', // teal
+      'rgb(239, 68, 68)', // red
+    ];
+
+    // Simple hash function
+    let hash = 0;
+    for (let i = 0; i < ticker.length; i++) {
+      hash = ticker.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % colors.length;
+    return colors[index];
+  };
+
   // Get unique tickers and strategies for dropdowns
   const tickers = Array.from(new Set(trades.map((t: any) => t.ticker)));
   const strategies = Array.from(new Set(trades.map((t: any) => t.strategy).filter(Boolean)));
@@ -374,9 +396,23 @@ export default function Dashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {trades.map((trade: any, index: number) => (
+                    {trades.map((trade: any, index: number) => {
+                      const tickerColor = getTickerColor(trade.ticker);
+                      return (
                       <tr key={index} className="border-b border-border hover:bg-secondary/30 transition-colors">
-                        <td className="px-2 py-3 text-sm">{trade.ticker}</td>
+                        <td className="px-2 py-3">
+                          <span
+                            className="inline-flex px-2 py-1 rounded text-xs font-semibold"
+                            style={{
+                              color: tickerColor,
+                              borderColor: tickerColor,
+                              backgroundColor: `${tickerColor}15`,
+                              border: `1px solid ${tickerColor}`,
+                            }}
+                          >
+                            {trade.ticker}
+                          </span>
+                        </td>
                         <td className="px-2 py-3">
                           {trade.strategy ? (
                             <span className="inline-flex px-1.5 py-0.5 rounded text-xs bg-accent/20 text-accent-foreground whitespace-nowrap">
@@ -433,7 +469,8 @@ export default function Dashboard() {
                           <ActionsDropdown onDelete={() => handleDelete(trade.id)} />
                         </td>
                       </tr>
-                    ))}
+                    );
+                    })}
                   </tbody>
                 </table>
               </div>
