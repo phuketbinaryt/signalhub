@@ -4,7 +4,12 @@ import { prisma } from './prisma';
 // Configure web-push with VAPID details
 const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
-const vapidEmail = process.env.VAPID_EMAIL || 'mailto:noreply@example.com';
+let vapidEmail = process.env.VAPID_EMAIL || 'mailto:noreply@example.com';
+
+// Ensure vapidEmail has mailto: prefix
+if (vapidEmail && !vapidEmail.startsWith('mailto:')) {
+  vapidEmail = `mailto:${vapidEmail}`;
+}
 
 if (vapidPublicKey && vapidPrivateKey) {
   webpush.setVapidDetails(vapidEmail, vapidPublicKey, vapidPrivateKey);
