@@ -73,6 +73,8 @@ model PickMyTradeConfig {
   allowedTickers  Json     // Array of allowed tickers
   token           String
   accountId       String
+  riskPercentage  Float    @default(100) // Percentage of original quantity (100 = full size)
+  roundingMode    String   @default("down") // "up" or "down" for fractional quantities
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

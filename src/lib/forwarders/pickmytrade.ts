@@ -43,12 +43,31 @@ export async function forwardToPickMyTrade(payload: any): Promise<void> {
           return;
         }
 
+        // Calculate adjusted quantity based on risk percentage
+        const originalQuantity = payload.quantity || 1;
+        const riskPercentage = config.riskPercentage || 100;
+        const adjustedQuantity = originalQuantity * (riskPercentage / 100);
+
+        // Apply rounding mode
+        let finalQuantity: number;
+        if (config.roundingMode === 'up') {
+          finalQuantity = Math.ceil(adjustedQuantity);
+        } else {
+          // Default to rounding down
+          finalQuantity = Math.floor(adjustedQuantity);
+        }
+
+        // Ensure at least 1 contract
+        finalQuantity = Math.max(1, finalQuantity);
+
+        console.log(`PickMyTrade [${config.name}]: Quantity adjusted from ${originalQuantity} to ${finalQuantity} (${riskPercentage}% risk, ${config.roundingMode} rounding)`);
+
         // Transform payload to PickMyTrade format
         const pickMyTradePayload = {
           symbol: payload.ticker,
           date: new Date().toISOString(),
           data: payload.direction === 'long' ? 'buy' : 'sell',
-          quantity: payload.quantity || 1,
+          quantity: finalQuantity,
           risk_percentage: 0,
           price: payload.price,
           gtd_in_second: 0,

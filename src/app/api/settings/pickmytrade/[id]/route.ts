@@ -18,7 +18,7 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { name, enabled, webhookUrls, allowedTickers, token, accountId } = body;
+    const { name, enabled, webhookUrls, allowedTickers, token, accountId, riskPercentage, roundingMode } = body;
 
     // Validate required fields
     if (name !== undefined && (!name || name.trim() === '')) {
@@ -59,6 +59,8 @@ export async function PUT(
         ...(allowedTickers !== undefined && { allowedTickers }),
         ...(token !== undefined && { token }),
         ...(accountId !== undefined && { accountId }),
+        ...(riskPercentage !== undefined && { riskPercentage }),
+        ...(roundingMode !== undefined && { roundingMode }),
       },
     });
 

@@ -14,6 +14,8 @@ interface PickMyTradeConfig {
   allowedTickers: string[];
   token: string;
   accountId: string;
+  riskPercentage: number;
+  roundingMode: string;
 }
 
 export default function SettingsPage() {
@@ -32,6 +34,8 @@ export default function SettingsPage() {
     allowedTickers: [],
     token: '',
     accountId: '',
+    riskPercentage: 100,
+    roundingMode: 'down',
   });
 
   useEffect(() => {
@@ -74,6 +78,8 @@ export default function SettingsPage() {
       allowedTickers: [],
       token: '',
       accountId: '',
+      riskPercentage: 100,
+      roundingMode: 'down',
     });
     setShowForm(true);
   };
@@ -87,6 +93,8 @@ export default function SettingsPage() {
       allowedTickers: config.allowedTickers,
       token: config.token,
       accountId: config.accountId,
+      riskPercentage: config.riskPercentage,
+      roundingMode: config.roundingMode,
     });
     setShowForm(true);
   };
@@ -310,6 +318,55 @@ export default function SettingsPage() {
               />
             </div>
 
+            {/* Risk Percentage */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Risk Percentage</label>
+              <p className="text-xs text-muted-foreground mb-2">
+                Percentage of TradingView quantity to send (e.g., 50% of 3 contracts = 1.5 contracts)
+              </p>
+              <div className="flex items-center gap-4">
+                <input
+                  type="number"
+                  min="1"
+                  max="100"
+                  value={formData.riskPercentage}
+                  onChange={(e) => setFormData({ ...formData, riskPercentage: parseFloat(e.target.value) || 100 })}
+                  className="w-32 bg-secondary border border-border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+                <span className="text-sm">%</span>
+              </div>
+            </div>
+
+            {/* Rounding Mode */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Rounding Mode</label>
+              <p className="text-xs text-muted-foreground mb-2">
+                How to round fractional quantities (e.g., 50% of 3 = 1.5 → Round Up: 2, Round Down: 1)
+              </p>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    value="down"
+                    checked={formData.roundingMode === 'down'}
+                    onChange={(e) => setFormData({ ...formData, roundingMode: e.target.value })}
+                    className="w-4 h-4 text-primary"
+                  />
+                  <span className="text-sm">Round Down</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    value="up"
+                    checked={formData.roundingMode === 'up'}
+                    onChange={(e) => setFormData({ ...formData, roundingMode: e.target.value })}
+                    className="w-4 h-4 text-primary"
+                  />
+                  <span className="text-sm">Round Up</span>
+                </label>
+              </div>
+            </div>
+
             {/* Webhook URLs */}
             <div className="space-y-2">
               <label className="text-sm font-medium">Webhook URL(s) *</label>
@@ -476,6 +533,12 @@ export default function SettingsPage() {
                         <p className="font-mono">{config.accountId}</p>
                       </div>
                       <div>
+                        <p className="text-muted-foreground mb-1">Risk Settings</p>
+                        <p>
+                          {config.riskPercentage}% risk, {config.roundingMode === 'up' ? 'Round Up' : 'Round Down'}
+                        </p>
+                      </div>
+                      <div>
                         <p className="text-muted-foreground mb-1">Webhook URLs</p>
                         <p>{config.webhookUrls.length} configured</p>
                       </div>
@@ -499,7 +562,8 @@ export default function SettingsPage() {
         <div className="mt-6 bg-accent/10 border border-accent/20 rounded-lg p-4">
           <h3 className="text-sm font-semibold mb-2">ℹ️ How it works</h3>
           <ul className="text-sm text-muted-foreground space-y-1">
-            <li>• Each configuration can have its own token, account, and ticker filters</li>
+            <li>• Each configuration can have its own token, account, risk settings, and ticker filters</li>
+            <li>• <strong>Risk percentage</strong> adjusts contract quantity (e.g., 50% of 3 contracts = 1.5, rounded to 1 or 2)</li>
             <li>• Only <strong>entry signals</strong> are forwarded to PickMyTrade</li>
             <li>• Take Profit and Stop Loss alerts are not forwarded</li>
             <li>• Disabled configurations will be skipped during forwarding</li>
