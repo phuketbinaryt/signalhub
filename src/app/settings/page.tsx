@@ -22,6 +22,10 @@ export default function SettingsPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [authenticated, setAuthenticated] = useState(false);
+  const [password, setPassword] = useState('');
+  const [verifying, setVerifying] = useState(false);
+  const [authError, setAuthError] = useState('');
   const [tickers, setTickers] = useState<string[]>([]);
   const [configs, setConfigs] = useState<PickMyTradeConfig[]>([]);
   const [editingConfig, setEditingConfig] = useState<PickMyTradeConfig | null>(null);
@@ -39,9 +43,47 @@ export default function SettingsPage() {
   });
 
   useEffect(() => {
-    fetchConfigs();
-    fetchTickers();
+    // Check if already authenticated in this session
+    const isAuth = sessionStorage.getItem('settings-authenticated') === 'true';
+    if (isAuth) {
+      setAuthenticated(true);
+      fetchConfigs();
+      fetchTickers();
+    } else {
+      setLoading(false);
+    }
   }, []);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setVerifying(true);
+    setAuthError('');
+
+    try {
+      const response = await fetch('/api/auth/verify-settings-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ password }),
+      });
+
+      if (response.ok) {
+        sessionStorage.setItem('settings-authenticated', 'true');
+        setAuthenticated(true);
+        setPassword('');
+        await fetchConfigs();
+        await fetchTickers();
+      } else {
+        const error = await response.json();
+        setAuthError(error.error || 'Incorrect password');
+      }
+    } catch (error) {
+      setAuthError('Failed to verify password');
+    } finally {
+      setVerifying(false);
+    }
+  };
 
   const fetchConfigs = async () => {
     try {
@@ -209,6 +251,70 @@ export default function SettingsPage() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  // Show login form if not authenticated
+  if (!authenticated) {
+    return (
+      <div className="min-h-screen bg-background">
+        {/* Header */}
+        <header className="border-b border-border bg-card/50 backdrop-blur-sm">
+          <div className="container mx-auto px-6 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Image
+                src="/logo/logo.png"
+                alt="Logo"
+                width={200}
+                height={200}
+                className="object-contain"
+                priority
+              />
+            </div>
+            <Button
+              onClick={() => router.push('/dashboard')}
+              variant="outline"
+              className="gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to Dashboard
+            </Button>
+          </div>
+        </header>
+
+        <div className="min-h-[calc(100vh-80px)] flex items-center justify-center px-6">
+          <div className="bg-card border border-border rounded-lg p-8 w-full max-w-md">
+            <h2 className="text-2xl font-bold mb-2">Settings Access</h2>
+            <p className="text-sm text-muted-foreground mb-6">
+              Enter password to access settings
+            </p>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Password</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter settings password"
+                  className="w-full bg-secondary border border-border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  autoFocus
+                  disabled={verifying}
+                />
+              </div>
+              {authError && (
+                <p className="text-sm text-destructive">{authError}</p>
+              )}
+              <Button
+                type="submit"
+                disabled={verifying || !password}
+                className="w-full bg-primary hover:bg-primary/90"
+              >
+                {verifying ? 'Verifying...' : 'Access Settings'}
+              </Button>
+            </form>
+          </div>
+        </div>
       </div>
     );
   }
