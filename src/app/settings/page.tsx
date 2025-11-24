@@ -282,10 +282,22 @@ export default function SettingsPage() {
     });
   };
 
-  // Select all strategies for a ticker
+  // Toggle between all strategies and specific strategies for a ticker
   const selectAllStrategiesForTicker = (ticker: string) => {
     const filters = { ...(formData.strategyFilters || {}) };
-    filters[ticker] = []; // Empty array = all strategies
+    const currentStrategies = filters[ticker] || [];
+
+    if (currentStrategies.length === 0) {
+      // Currently "all strategies", switch to first strategy only
+      const tickerData = tickerStrategies.find(ts => ts.ticker === ticker);
+      if (tickerData && tickerData.strategies.length > 0) {
+        filters[ticker] = [tickerData.strategies[0]];
+      }
+    } else {
+      // Currently specific strategies, switch to all strategies
+      filters[ticker] = [];
+    }
+
     setFormData({
       ...formData,
       strategyFilters: filters,
