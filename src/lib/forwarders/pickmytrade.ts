@@ -20,7 +20,7 @@ export async function forwardToPickMyTrade(payload: any): Promise<void> {
       return;
     }
 
-    const settings = settingsRecord.value as PickMyTradeSettings;
+    const settings = settingsRecord.value as unknown as PickMyTradeSettings;
 
     // Check if enabled
     if (!settings.enabled) {
