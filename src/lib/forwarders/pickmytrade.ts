@@ -24,12 +24,35 @@ export async function forwardToPickMyTrade(payload: any): Promise<void> {
     const configPromises = configs.map(async (config) => {
       try {
         const webhookUrls = config.webhookUrls as string[];
-        const allowedTickers = config.allowedTickers as string[];
+        const strategyFilters = config.strategyFilters as Record<string, string[]>;
 
-        // Check if ticker is allowed for this config
-        if (allowedTickers.length > 0 && !allowedTickers.includes(payload.ticker)) {
-          console.log(`PickMyTrade [${config.name}]: Ticker ${payload.ticker} not in allowed list`);
-          return;
+        // Check if ticker/strategy combination is allowed
+        const tickers = Object.keys(strategyFilters);
+
+        // If no filters set, allow all
+        if (tickers.length === 0) {
+          console.log(`PickMyTrade [${config.name}]: No filters set, allowing all`);
+        } else {
+          // Check if ticker is in filters
+          if (!strategyFilters[payload.ticker]) {
+            console.log(`PickMyTrade [${config.name}]: Ticker ${payload.ticker} not in filter list`);
+            return;
+          }
+
+          // Check if strategy filtering is required for this ticker
+          const allowedStrategies = strategyFilters[payload.ticker];
+
+          // If strategies array is not empty, check if payload strategy matches
+          if (allowedStrategies.length > 0) {
+            const payloadStrategy = payload.strategy || '';
+            if (!allowedStrategies.includes(payloadStrategy)) {
+              console.log(`PickMyTrade [${config.name}]: Strategy "${payloadStrategy}" not allowed for ticker ${payload.ticker}`);
+              return;
+            }
+            console.log(`PickMyTrade [${config.name}]: Ticker ${payload.ticker} with strategy "${payloadStrategy}" allowed`);
+          } else {
+            console.log(`PickMyTrade [${config.name}]: Ticker ${payload.ticker} allowed (all strategies)`);
+          }
         }
 
         // Validate required fields

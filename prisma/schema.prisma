@@ -70,7 +70,8 @@ model PickMyTradeConfig {
   name            String   // User-friendly name for this config
   enabled         Boolean  @default(true)
   webhookUrls     Json     // Array of webhook URLs
-  allowedTickers  Json     // Array of allowed tickers
+  allowedTickers  Json     // Deprecated - use strategyFilters instead
+  strategyFilters Json     @default("{}") // Object: { "MNQ": ["Strategy1"], "ES": [] } - empty array = all strategies
   token           String
   accountId       String
   riskPercentage  Float    @default(100) // Percentage of original quantity (100 = full size)

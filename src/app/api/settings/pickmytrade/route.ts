@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    const { name, enabled, webhookUrls, allowedTickers, token, accountId, riskPercentage, roundingMode } = body;
+    const { name, enabled, webhookUrls, strategyFilters, token, accountId, riskPercentage, roundingMode } = body;
 
     // Validate required fields
     if (!name || name.trim() === '') {
@@ -55,7 +55,8 @@ export async function POST(request: NextRequest) {
         name: name.trim(),
         enabled: enabled ?? true,
         webhookUrls: webhookUrls || [],
-        allowedTickers: allowedTickers || [],
+        allowedTickers: [], // Deprecated, kept for compatibility
+        strategyFilters: strategyFilters || {},
         token,
         accountId,
         riskPercentage: riskPercentage ?? 100,

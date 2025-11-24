@@ -11,11 +11,17 @@ interface PickMyTradeConfig {
   name: string;
   enabled: boolean;
   webhookUrls: string[];
-  allowedTickers: string[];
+  allowedTickers: string[]; // Deprecated
+  strategyFilters: Record<string, string[]>;
   token: string;
   accountId: string;
   riskPercentage: number;
   roundingMode: string;
+}
+
+interface TickerStrategy {
+  ticker: string;
+  strategies: string[];
 }
 
 export default function SettingsPage() {
@@ -27,6 +33,7 @@ export default function SettingsPage() {
   const [verifying, setVerifying] = useState(false);
   const [authError, setAuthError] = useState('');
   const [tickers, setTickers] = useState<string[]>([]);
+  const [tickerStrategies, setTickerStrategies] = useState<TickerStrategy[]>([]);
   const [configs, setConfigs] = useState<PickMyTradeConfig[]>([]);
   const [editingConfig, setEditingConfig] = useState<PickMyTradeConfig | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -35,7 +42,7 @@ export default function SettingsPage() {
     name: '',
     enabled: true,
     webhookUrls: [],
-    allowedTickers: [],
+    strategyFilters: {},
     token: '',
     accountId: '',
     riskPercentage: 100,
@@ -105,6 +112,7 @@ export default function SettingsPage() {
       if (response.ok) {
         const data = await response.json();
         setTickers(data.tickers);
+        setTickerStrategies(data.tickerStrategies || []);
       }
     } catch (error) {
       console.error('Error fetching tickers:', error);
@@ -117,7 +125,7 @@ export default function SettingsPage() {
       name: '',
       enabled: true,
       webhookUrls: [],
-      allowedTickers: [],
+      strategyFilters: {},
       token: '',
       accountId: '',
       riskPercentage: 100,
@@ -132,7 +140,7 @@ export default function SettingsPage() {
       name: config.name,
       enabled: config.enabled,
       webhookUrls: config.webhookUrls,
-      allowedTickers: config.allowedTickers,
+      strategyFilters: config.strategyFilters || {},
       token: config.token,
       accountId: config.accountId,
       riskPercentage: config.riskPercentage,
@@ -223,27 +231,101 @@ export default function SettingsPage() {
     });
   };
 
+  // Toggle entire ticker (all strategies)
   const toggleTicker = (ticker: string) => {
-    const isSelected = (formData.allowedTickers || []).includes(ticker);
+    const filters = { ...(formData.strategyFilters || {}) };
+    if (filters[ticker]) {
+      // Remove ticker
+      delete filters[ticker];
+    } else {
+      // Add ticker with all strategies (empty array)
+      filters[ticker] = [];
+    }
     setFormData({
       ...formData,
-      allowedTickers: isSelected
-        ? (formData.allowedTickers || []).filter((t) => t !== ticker)
-        : [...(formData.allowedTickers || []), ticker],
+      strategyFilters: filters,
     });
   };
 
-  const selectAllTickers = () => {
+  // Toggle specific strategy for a ticker
+  const toggleStrategy = (ticker: string, strategy: string) => {
+    const filters = { ...(formData.strategyFilters || {}) };
+
+    if (!filters[ticker]) {
+      // Ticker not selected yet, add with this strategy
+      filters[ticker] = [strategy];
+    } else if (filters[ticker].length === 0) {
+      // Currently all strategies selected, switch to just this one
+      filters[ticker] = [strategy];
+    } else {
+      // Some strategies selected
+      const strategies = [...filters[ticker]];
+      const index = strategies.indexOf(strategy);
+      if (index > -1) {
+        // Remove strategy
+        strategies.splice(index, 1);
+        if (strategies.length === 0) {
+          // If no strategies left, remove ticker entirely
+          delete filters[ticker];
+        } else {
+          filters[ticker] = strategies;
+        }
+      } else {
+        // Add strategy
+        filters[ticker] = [...strategies, strategy];
+      }
+    }
+
     setFormData({
       ...formData,
-      allowedTickers: tickers,
+      strategyFilters: filters,
+    });
+  };
+
+  // Select all strategies for a ticker
+  const selectAllStrategiesForTicker = (ticker: string) => {
+    const filters = { ...(formData.strategyFilters || {}) };
+    filters[ticker] = []; // Empty array = all strategies
+    setFormData({
+      ...formData,
+      strategyFilters: filters,
+    });
+  };
+
+  // Check if ticker is selected (with or without strategies)
+  const isTickerSelected = (ticker: string) => {
+    return !!(formData.strategyFilters || {})[ticker];
+  };
+
+  // Check if all strategies are selected for a ticker
+  const isAllStrategiesSelected = (ticker: string) => {
+    const strategies = (formData.strategyFilters || {})[ticker];
+    return strategies && strategies.length === 0;
+  };
+
+  // Check if specific strategy is selected
+  const isStrategySelected = (ticker: string, strategy: string) => {
+    const strategies = (formData.strategyFilters || {})[ticker];
+    if (!strategies) return false;
+    if (strategies.length === 0) return true; // All strategies selected
+    return strategies.includes(strategy);
+  };
+
+  const selectAllTickers = () => {
+    const filters: Record<string, string[]> = {};
+    tickerStrategies.forEach((ts) => {
+      filters[ts.ticker] = []; // Empty array = all strategies
+    });
+    setFormData({
+      ...formData,
+      strategyFilters: filters,
     });
   };
 
   const deselectAllTickers = () => {
     setFormData({
       ...formData,
-      allowedTickers: [],
+      strategyFilters: {},
     });
   };
 
@@ -512,11 +594,11 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* Allowed Tickers */}
+            {/* Ticker & Strategy Filters */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-medium">
-                  Forward Tickers (leave empty for all)
+                  Forward Tickers & Strategies (leave empty for all)
                 </label>
                 <div className="flex gap-2">
                   <button
@@ -535,33 +617,70 @@ export default function SettingsPage() {
                 </div>
               </div>
               <div className="bg-secondary border border-border rounded-lg p-4">
-                {tickers.length === 0 ? (
+                {tickerStrategies.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-4">
                     No tickers available. Create trades to see tickers here.
                   </p>
                 ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                    {tickers.map((ticker) => (
-                      <label
-                        key={ticker}
-                        className="flex items-center gap-2 cursor-pointer hover:bg-background/50 rounded p-2 transition-colors"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={(formData.allowedTickers || []).includes(ticker)}
-                          onChange={() => toggleTicker(ticker)}
-                          className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary"
-                        />
-                        <span className="text-sm">{ticker}</span>
-                      </label>
+                  <div className="space-y-3">
+                    {tickerStrategies.map((ts) => (
+                      <div key={ts.ticker} className="border border-border rounded-lg">
+                        {/* Ticker Row */}
+                        <div className="flex items-center gap-2 p-3 bg-background/50">
+                          <input
+                            type="checkbox"
+                            checked={isTickerSelected(ts.ticker)}
+                            onChange={() => toggleTicker(ts.ticker)}
+                            className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary"
+                          />
+                          <span className="text-sm font-medium flex-1">{ts.ticker}</span>
+                          {isTickerSelected(ts.ticker) && (
+                            <span className="text-xs text-muted-foreground">
+                              {isAllStrategiesSelected(ts.ticker)
+                                ? 'All strategies'
+                                : `${(formData.strategyFilters?.[ts.ticker] || []).length} selected`}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Strategies (show if ticker has multiple strategies) */}
+                        {ts.strategies.length > 1 && isTickerSelected(ts.ticker) && (
+                          <div className="p-3 pt-0 space-y-2">
+                            <button
+                              onClick={() => selectAllStrategiesForTicker(ts.ticker)}
+                              className="text-xs text-primary hover:underline mb-2"
+                            >
+                              {isAllStrategiesSelected(ts.ticker) ? 'Select Specific' : 'All Strategies'}
+                            </button>
+                            {!isAllStrategiesSelected(ts.ticker) && (
+                              <div className="grid grid-cols-1 gap-2 pl-6">
+                                {ts.strategies.map((strategy) => (
+                                  <label
+                                    key={strategy}
+                                    className="flex items-center gap-2 cursor-pointer hover:bg-background/50 rounded p-2 transition-colors"
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={isStrategySelected(ts.ticker, strategy)}
+                                      onChange={() => toggleStrategy(ts.ticker, strategy)}
+                                      className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary"
+                                    />
+                                    <span className="text-xs">{strategy}</span>
+                                  </label>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     ))}
                   </div>
                 )}
               </div>
               <p className="text-xs text-muted-foreground">
-                {(formData.allowedTickers || []).length === 0
+                {Object.keys(formData.strategyFilters || {}).length === 0
                   ? 'All tickers will be forwarded'
-                  : `${(formData.allowedTickers || []).length} ticker(s) selected`}
+                  : `${Object.keys(formData.strategyFilters || {}).length} ticker(s) configured`}
               </p>
             </div>
 
@@ -649,11 +768,11 @@ export default function SettingsPage() {
                         <p>{config.webhookUrls.length} configured</p>
                       </div>
                       <div>
-                        <p className="text-muted-foreground mb-1">Allowed Tickers</p>
+                        <p className="text-muted-foreground mb-1">Ticker Filters</p>
                         <p>
-                          {config.allowedTickers.length === 0
+                          {Object.keys(config.strategyFilters || {}).length === 0
                             ? 'All tickers'
-                            : `${config.allowedTickers.length} selected`}
+                            : `${Object.keys(config.strategyFilters || {}).length} configured`}
                         </p>
                       </div>
                     </div>
