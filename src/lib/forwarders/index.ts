@@ -1,12 +1,14 @@
 import { forwardToDiscord } from './discord';
 import { forwardToTelegram } from './telegram';
 import { forwardToExternalDashboard } from './externalDashboard';
+import { forwardToPickMyTrade } from './pickmytrade';
 
 export async function dispatchForwarders(payload: any): Promise<void> {
   const forwarders = [
     forwardToDiscord(payload),
     forwardToTelegram(payload),
     forwardToExternalDashboard(payload),
+    forwardToPickMyTrade(payload),
   ];
 
   // Run all forwarders in parallel and collect results
@@ -15,7 +17,7 @@ export async function dispatchForwarders(payload: any): Promise<void> {
   // Log any failures
   results.forEach((result, index) => {
     if (result.status === 'rejected') {
-      const forwarderNames = ['Discord', 'Telegram', 'External Dashboard'];
+      const forwarderNames = ['Discord', 'Telegram', 'External Dashboard', 'PickMyTrade'];
       console.error(`${forwarderNames[index]} forwarder failed:`, result.reason);
     }
   });

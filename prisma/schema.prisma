@@ -55,3 +55,12 @@ model PushSubscription {
 
   @@index([endpoint])
 }
+
+model Settings {
+  id                      Int      @id @default(autoincrement())
+  key                     String   @unique
+  value                   Json     // Store settings as JSON
+  updatedAt               DateTime @default(now()) @updatedAt
+
+  @@index([key])
+}

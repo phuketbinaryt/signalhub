@@ -11,8 +11,9 @@ import { PushNotificationButton } from '@/components/PushNotificationButton';
 import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
 import { OpenTradesTable } from '@/components/OpenTradesTable';
 import { useSoundNotifications } from '@/hooks/useSoundNotifications';
-import { TrendingUp, TrendingDown } from 'lucide-react';
+import { TrendingUp, TrendingDown, Settings } from 'lucide-react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 
 interface TradeData {
   trades: any[];
@@ -39,6 +40,7 @@ interface TradeData {
 }
 
 export default function Dashboard() {
+  const router = useRouter();
   const [tradeData, setTradeData] = useState<TradeData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedTicker, setSelectedTicker] = useState('all');
@@ -307,6 +309,14 @@ export default function Dashboard() {
               setVolume={setVolume}
             />
             <PushNotificationButton />
+            <Button
+              onClick={() => router.push('/settings')}
+              variant="outline"
+              className="gap-2"
+            >
+              <Settings className="w-4 h-4" />
+              <span className="hidden sm:inline">Settings</span>
+            </Button>
             <Button onClick={fetchTrades} className="bg-primary hover:bg-primary/90">
               Refresh
             </Button>
