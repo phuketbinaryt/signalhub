@@ -293,7 +293,7 @@ export default function SettingsPage() {
                 type="text"
                 value={formData.token}
                 onChange={(e) => setFormData({ ...formData, token: e.target.value })}
-                placeholder="G9d83ae8cbaff498fa6cf6"
+                placeholder="Abc123xyz789token456"
                 className="w-full bg-secondary border border-border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
@@ -305,7 +305,7 @@ export default function SettingsPage() {
                 type="text"
                 value={formData.accountId}
                 onChange={(e) => setFormData({ ...formData, accountId: e.target.value })}
-                placeholder="APEX7859600000813"
+                placeholder="DEMO1234567890123"
                 className="w-full bg-secondary border border-border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
