@@ -3,87 +3,71 @@ import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
-// GET - Retrieve PickMyTrade settings
+// GET - Retrieve all PickMyTrade configs
 export async function GET() {
   try {
-    const settings = await prisma.settings.findUnique({
-      where: { key: 'pickmytrade' },
+    const configs = await prisma.pickMyTradeConfig.findMany({
+      orderBy: { createdAt: 'desc' },
     });
 
-    if (!settings) {
-      // Return default settings if none exist
-      return NextResponse.json({
-        enabled: false,
-        webhookUrls: [],
-        allowedTickers: [],
-        token: '',
-        accountId: '',
-      });
-    }
-
-    return NextResponse.json(settings.value);
+    return NextResponse.json({ configs });
   } catch (error) {
-    console.error('Error fetching PickMyTrade settings:', error);
+    console.error('Error fetching PickMyTrade configs:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch settings' },
+      { error: 'Failed to fetch configs' },
       { status: 500 }
     );
   }
 }
 
-// POST - Update PickMyTrade settings
+// POST - Create new PickMyTrade config
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    const { enabled, webhookUrls, allowedTickers, token, accountId } = body;
+    const { name, enabled, webhookUrls, allowedTickers, token, accountId } = body;
 
     // Validate required fields
-    if (enabled && (!token || !accountId)) {
+    if (!name || name.trim() === '') {
       return NextResponse.json(
-        { error: 'Token and Account ID are required when enabled' },
+        { error: 'Config name is required' },
         { status: 400 }
       );
     }
 
-    if (enabled && (!webhookUrls || webhookUrls.length === 0)) {
+    if (!token || !accountId) {
       return NextResponse.json(
-        { error: 'At least one webhook URL is required when enabled' },
+        { error: 'Token and Account ID are required' },
         { status: 400 }
       );
     }
 
-    // Upsert settings
-    const settings = await prisma.settings.upsert({
-      where: { key: 'pickmytrade' },
-      update: {
-        value: {
-          enabled: enabled || false,
-          webhookUrls: webhookUrls || [],
-          allowedTickers: allowedTickers || [],
-          token: token || '',
-          accountId: accountId || '',
-        },
-      },
-      create: {
-        key: 'pickmytrade',
-        value: {
-          enabled: enabled || false,
-          webhookUrls: webhookUrls || [],
-          allowedTickers: allowedTickers || [],
-          token: token || '',
-          accountId: accountId || '',
-        },
+    if (!webhookUrls || webhookUrls.length === 0) {
+      return NextResponse.json(
+        { error: 'At least one webhook URL is required' },
+        { status: 400 }
+      );
+    }
+
+    // Create new config
+    const config = await prisma.pickMyTradeConfig.create({
+      data: {
+        name: name.trim(),
+        enabled: enabled ?? true,
+        webhookUrls: webhookUrls || [],
+        allowedTickers: allowedTickers || [],
+        token,
+        accountId,
       },
     });
 
-    console.log('✅ PickMyTrade settings updated');
+    console.log(`✅ PickMyTrade config created: ${config.name}`);
 
-    return NextResponse.json(settings.value);
+    return NextResponse.json(config);
   } catch (error) {
-    console.error('Error updating PickMyTrade settings:', error);
+    console.error('Error creating PickMyTrade config:', error);
     return NextResponse.json(
-      { error: 'Failed to update settings' },
+      { error: 'Failed to create config' },
       { status: 500 }
     );
   }

@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Save, Plus, X } from 'lucide-react';
+import { ArrowLeft, Save, Plus, X, Edit2, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
-interface PickMyTradeSettings {
+interface PickMyTradeConfig {
+  id: number;
+  name: string;
   enabled: boolean;
   webhookUrls: string[];
   allowedTickers: string[];
@@ -19,29 +21,33 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [tickers, setTickers] = useState<string[]>([]);
-  const [settings, setSettings] = useState<PickMyTradeSettings>({
-    enabled: false,
+  const [configs, setConfigs] = useState<PickMyTradeConfig[]>([]);
+  const [editingConfig, setEditingConfig] = useState<PickMyTradeConfig | null>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [newWebhookUrl, setNewWebhookUrl] = useState('');
+  const [formData, setFormData] = useState<Partial<PickMyTradeConfig>>({
+    name: '',
+    enabled: true,
     webhookUrls: [],
     allowedTickers: [],
     token: '',
     accountId: '',
   });
-  const [newWebhookUrl, setNewWebhookUrl] = useState('');
 
   useEffect(() => {
-    fetchSettings();
+    fetchConfigs();
     fetchTickers();
   }, []);
 
-  const fetchSettings = async () => {
+  const fetchConfigs = async () => {
     try {
       const response = await fetch('/api/settings/pickmytrade');
       if (response.ok) {
         const data = await response.json();
-        setSettings(data);
+        setConfigs(data.configs);
       }
     } catch (error) {
-      console.error('Error fetching settings:', error);
+      console.error('Error fetching configs:', error);
     } finally {
       setLoading(false);
     }
@@ -59,26 +65,92 @@ export default function SettingsPage() {
     }
   };
 
+  const handleCreateNew = () => {
+    setEditingConfig(null);
+    setFormData({
+      name: '',
+      enabled: true,
+      webhookUrls: [],
+      allowedTickers: [],
+      token: '',
+      accountId: '',
+    });
+    setShowForm(true);
+  };
+
+  const handleEdit = (config: PickMyTradeConfig) => {
+    setEditingConfig(config);
+    setFormData({
+      name: config.name,
+      enabled: config.enabled,
+      webhookUrls: config.webhookUrls,
+      allowedTickers: config.allowedTickers,
+      token: config.token,
+      accountId: config.accountId,
+    });
+    setShowForm(true);
+  };
+
+  const handleDelete = async (id: number, name: string) => {
+    if (!confirm(`Are you sure you want to delete "${name}"?`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/settings/pickmytrade/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete config');
+      }
+
+      await fetchConfigs();
+      alert('Config deleted successfully!');
+    } catch (error: any) {
+      alert(error.message || 'Failed to delete config');
+    }
+  };
+
   const handleSave = async () => {
     try {
       setSaving(true);
 
-      const response = await fetch('/api/settings/pickmytrade', {
-        method: 'POST',
+      // Validate
+      if (!formData.name || !formData.token || !formData.accountId) {
+        alert('Please fill in all required fields');
+        return;
+      }
+
+      if (!formData.webhookUrls || formData.webhookUrls.length === 0) {
+        alert('Please add at least one webhook URL');
+        return;
+      }
+
+      const url = editingConfig
+        ? `/api/settings/pickmytrade/${editingConfig.id}`
+        : '/api/settings/pickmytrade';
+
+      const method = editingConfig ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(settings),
+        body: JSON.stringify(formData),
       });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to save settings');
+        throw new Error(error.error || 'Failed to save config');
       }
 
-      alert('Settings saved successfully!');
+      await fetchConfigs();
+      setShowForm(false);
+      alert(`Config ${editingConfig ? 'updated' : 'created'} successfully!`);
     } catch (error: any) {
-      alert(error.message || 'Failed to save settings');
+      alert(error.message || 'Failed to save config');
     } finally {
       setSaving(false);
     }
@@ -86,41 +158,41 @@ export default function SettingsPage() {
 
   const addWebhookUrl = () => {
     if (newWebhookUrl.trim()) {
-      setSettings({
-        ...settings,
-        webhookUrls: [...settings.webhookUrls, newWebhookUrl.trim()],
+      setFormData({
+        ...formData,
+        webhookUrls: [...(formData.webhookUrls || []), newWebhookUrl.trim()],
       });
       setNewWebhookUrl('');
     }
   };
 
   const removeWebhookUrl = (index: number) => {
-    setSettings({
-      ...settings,
-      webhookUrls: settings.webhookUrls.filter((_, i) => i !== index),
+    setFormData({
+      ...formData,
+      webhookUrls: (formData.webhookUrls || []).filter((_, i) => i !== index),
     });
   };
 
   const toggleTicker = (ticker: string) => {
-    const isSelected = settings.allowedTickers.includes(ticker);
-    setSettings({
-      ...settings,
+    const isSelected = (formData.allowedTickers || []).includes(ticker);
+    setFormData({
+      ...formData,
       allowedTickers: isSelected
-        ? settings.allowedTickers.filter((t) => t !== ticker)
-        : [...settings.allowedTickers, ticker],
+        ? (formData.allowedTickers || []).filter((t) => t !== ticker)
+        : [...(formData.allowedTickers || []), ticker],
     });
   };
 
   const selectAllTickers = () => {
-    setSettings({
-      ...settings,
+    setFormData({
+      ...formData,
       allowedTickers: tickers,
     });
   };
 
   const deselectAllTickers = () => {
-    setSettings({
-      ...settings,
+    setFormData({
+      ...formData,
       allowedTickers: [],
     });
   };
@@ -159,169 +231,279 @@ export default function SettingsPage() {
         </div>
       </header>
 
-      <div className="container mx-auto px-6 py-8 max-w-4xl">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Settings</h1>
-          <p className="text-muted-foreground">Configure PickMyTrade integration</p>
+      <div className="container mx-auto px-6 py-8 max-w-6xl">
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">PickMyTrade Settings</h1>
+            <p className="text-muted-foreground">Manage multiple PickMyTrade configurations</p>
+          </div>
+          {!showForm && (
+            <Button onClick={handleCreateNew} className="gap-2 bg-primary hover:bg-primary/90">
+              <Plus className="w-4 h-4" />
+              Add Configuration
+            </Button>
+          )}
         </div>
 
-        {/* PickMyTrade Settings */}
-        <div className="bg-card border border-border rounded-lg p-6 space-y-6">
-          <div className="flex items-center justify-between pb-4 border-b border-border">
-            <div>
-              <h2 className="text-xl font-semibold">PickMyTrade Integration</h2>
-              <p className="text-sm text-muted-foreground mt-1">
-                Forward entry signals to PickMyTrade for automated trading
-              </p>
+        {showForm ? (
+          /* Config Form */
+          <div className="bg-card border border-border rounded-lg p-6 space-y-6">
+            <div className="flex items-center justify-between pb-4 border-b border-border">
+              <h2 className="text-xl font-semibold">
+                {editingConfig ? 'Edit Configuration' : 'New Configuration'}
+              </h2>
+              <Button onClick={() => setShowForm(false)} variant="outline" size="sm">
+                Cancel
+              </Button>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={settings.enabled}
-                onChange={(e) => setSettings({ ...settings, enabled: e.target.checked })}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-secondary rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-            </label>
-          </div>
 
-          {/* Token */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">API Token</label>
-            <input
-              type="text"
-              value={settings.token}
-              onChange={(e) => setSettings({ ...settings, token: e.target.value })}
-              placeholder="G9d83ae8cbaff498fa6cf6"
-              className="w-full bg-secondary border border-border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-          </div>
-
-          {/* Account ID */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Account ID</label>
-            <input
-              type="text"
-              value={settings.accountId}
-              onChange={(e) => setSettings({ ...settings, accountId: e.target.value })}
-              placeholder="APEX7859600000813"
-              className="w-full bg-secondary border border-border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-          </div>
-
-          {/* Webhook URLs */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Webhook URL(s)</label>
+            {/* Name */}
             <div className="space-y-2">
-              {settings.webhookUrls.map((url, index) => (
-                <div key={index} className="flex gap-2">
+              <label className="text-sm font-medium">Configuration Name *</label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="My Trading Account"
+                className="w-full bg-secondary border border-border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+
+            {/* Enabled Toggle */}
+            <div className="flex items-center justify-between">
+              <div>
+                <label className="text-sm font-medium">Enable this configuration</label>
+                <p className="text-xs text-muted-foreground">Turn off to temporarily disable forwarding</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.enabled}
+                  onChange={(e) => setFormData({ ...formData, enabled: e.target.checked })}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-secondary rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+              </label>
+            </div>
+
+            {/* Token */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">API Token *</label>
+              <input
+                type="text"
+                value={formData.token}
+                onChange={(e) => setFormData({ ...formData, token: e.target.value })}
+                placeholder="G9d83ae8cbaff498fa6cf6"
+                className="w-full bg-secondary border border-border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+
+            {/* Account ID */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Account ID *</label>
+              <input
+                type="text"
+                value={formData.accountId}
+                onChange={(e) => setFormData({ ...formData, accountId: e.target.value })}
+                placeholder="APEX7859600000813"
+                className="w-full bg-secondary border border-border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+
+            {/* Webhook URLs */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Webhook URL(s) *</label>
+              <div className="space-y-2">
+                {(formData.webhookUrls || []).map((url, index) => (
+                  <div key={index} className="flex gap-2">
+                    <input
+                      type="text"
+                      value={url}
+                      readOnly
+                      className="flex-1 bg-secondary border border-border rounded-lg px-4 py-2 text-sm"
+                    />
+                    <Button
+                      onClick={() => removeWebhookUrl(index)}
+                      variant="outline"
+                      size="sm"
+                      className="text-destructive hover:bg-destructive/10"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+                <div className="flex gap-2">
                   <input
                     type="text"
-                    value={url}
-                    readOnly
-                    className="flex-1 bg-secondary border border-border rounded-lg px-4 py-2 text-sm"
+                    value={newWebhookUrl}
+                    onChange={(e) => setNewWebhookUrl(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && addWebhookUrl()}
+                    placeholder="https://api.pickmytrade.com/webhook"
+                    className="flex-1 bg-secondary border border-border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                   />
-                  <Button
-                    onClick={() => removeWebhookUrl(index)}
-                    variant="outline"
-                    size="sm"
-                    className="text-destructive hover:bg-destructive/10"
-                  >
-                    <X className="w-4 h-4" />
+                  <Button onClick={addWebhookUrl} size="sm" className="gap-2">
+                    <Plus className="w-4 h-4" />
+                    Add
                   </Button>
                 </div>
-              ))}
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={newWebhookUrl}
-                  onChange={(e) => setNewWebhookUrl(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && addWebhookUrl()}
-                  placeholder="https://api.pickmytrade.com/webhook"
-                  className="flex-1 bg-secondary border border-border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-                <Button onClick={addWebhookUrl} size="sm" className="gap-2">
+              </div>
+            </div>
+
+            {/* Allowed Tickers */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium">
+                  Forward Tickers (leave empty for all)
+                </label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={selectAllTickers}
+                    className="text-xs text-primary hover:underline"
+                  >
+                    Select All
+                  </button>
+                  <span className="text-xs text-muted-foreground">|</span>
+                  <button
+                    onClick={deselectAllTickers}
+                    className="text-xs text-primary hover:underline"
+                  >
+                    Deselect All
+                  </button>
+                </div>
+              </div>
+              <div className="bg-secondary border border-border rounded-lg p-4">
+                {tickers.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    No tickers available. Create trades to see tickers here.
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                    {tickers.map((ticker) => (
+                      <label
+                        key={ticker}
+                        className="flex items-center gap-2 cursor-pointer hover:bg-background/50 rounded p-2 transition-colors"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={(formData.allowedTickers || []).includes(ticker)}
+                          onChange={() => toggleTicker(ticker)}
+                          className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary"
+                        />
+                        <span className="text-sm">{ticker}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {(formData.allowedTickers || []).length === 0
+                  ? 'All tickers will be forwarded'
+                  : `${(formData.allowedTickers || []).length} ticker(s) selected`}
+              </p>
+            </div>
+
+            {/* Save Button */}
+            <div className="pt-4 border-t border-border">
+              <Button
+                onClick={handleSave}
+                disabled={saving}
+                className="w-full gap-2 bg-primary hover:bg-primary/90"
+              >
+                <Save className="w-4 h-4" />
+                {saving ? 'Saving...' : 'Save Configuration'}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          /* Config List */
+          <>
+            {configs.length === 0 ? (
+              <div className="bg-card border border-border rounded-lg p-12 text-center">
+                <p className="text-muted-foreground mb-4">No configurations yet</p>
+                <Button onClick={handleCreateNew} className="gap-2">
                   <Plus className="w-4 h-4" />
-                  Add URL
+                  Create Your First Configuration
                 </Button>
               </div>
-            </div>
-          </div>
-
-          {/* Allowed Tickers */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-medium">
-                Forward Tickers (leave empty for all)
-              </label>
-              <div className="flex gap-2">
-                <button
-                  onClick={selectAllTickers}
-                  className="text-xs text-primary hover:underline"
-                >
-                  Select All
-                </button>
-                <span className="text-xs text-muted-foreground">|</span>
-                <button
-                  onClick={deselectAllTickers}
-                  className="text-xs text-primary hover:underline"
-                >
-                  Deselect All
-                </button>
+            ) : (
+              <div className="space-y-4">
+                {configs.map((config) => (
+                  <div
+                    key={config.id}
+                    className="bg-card border border-border rounded-lg p-6"
+                  >
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <h3 className="text-lg font-semibold">{config.name}</h3>
+                        {config.enabled ? (
+                          <span className="px-2 py-1 rounded text-xs bg-success/20 text-success border border-success/30">
+                            Enabled
+                          </span>
+                        ) : (
+                          <span className="px-2 py-1 rounded text-xs bg-muted text-muted-foreground">
+                            Disabled
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={() => handleEdit(config)}
+                          variant="outline"
+                          size="sm"
+                          className="gap-2"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                          Edit
+                        </Button>
+                        <Button
+                          onClick={() => handleDelete(config.id, config.name)}
+                          variant="outline"
+                          size="sm"
+                          className="gap-2 text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Delete
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p className="text-muted-foreground mb-1">Token</p>
+                        <p className="font-mono">{config.token}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground mb-1">Account ID</p>
+                        <p className="font-mono">{config.accountId}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground mb-1">Webhook URLs</p>
+                        <p>{config.webhookUrls.length} configured</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground mb-1">Allowed Tickers</p>
+                        <p>
+                          {config.allowedTickers.length === 0
+                            ? 'All tickers'
+                            : `${config.allowedTickers.length} selected`}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-            </div>
-            <div className="bg-secondary border border-border rounded-lg p-4">
-              {tickers.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  No tickers available. Create trades to see tickers here.
-                </p>
-              ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                  {tickers.map((ticker) => (
-                    <label
-                      key={ticker}
-                      className="flex items-center gap-2 cursor-pointer hover:bg-background/50 rounded p-2 transition-colors"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={settings.allowedTickers.includes(ticker)}
-                        onChange={() => toggleTicker(ticker)}
-                        className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary"
-                      />
-                      <span className="text-sm">{ticker}</span>
-                    </label>
-                  ))}
-                </div>
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {settings.allowedTickers.length === 0
-                ? 'All tickers will be forwarded'
-                : `${settings.allowedTickers.length} ticker(s) selected`}
-            </p>
-          </div>
-
-          {/* Save Button */}
-          <div className="pt-4 border-t border-border">
-            <Button
-              onClick={handleSave}
-              disabled={saving}
-              className="w-full gap-2 bg-primary hover:bg-primary/90"
-            >
-              <Save className="w-4 h-4" />
-              {saving ? 'Saving...' : 'Save Settings'}
-            </Button>
-          </div>
-        </div>
+            )}
+          </>
+        )}
 
         {/* Info Box */}
         <div className="mt-6 bg-accent/10 border border-accent/20 rounded-lg p-4">
           <h3 className="text-sm font-semibold mb-2">ℹ️ How it works</h3>
           <ul className="text-sm text-muted-foreground space-y-1">
+            <li>• Each configuration can have its own token, account, and ticker filters</li>
             <li>• Only <strong>entry signals</strong> are forwarded to PickMyTrade</li>
             <li>• Take Profit and Stop Loss alerts are not forwarded</li>
-            <li>• Ticker filtering applies to all configured webhook URLs</li>
-            <li>• Trades are sent with order type "MKT" (market orders)</li>
+            <li>• Disabled configurations will be skipped during forwarding</li>
+            <li>• All enabled configurations receive matching signals simultaneously</li>
           </ul>
         </div>
       </div>
