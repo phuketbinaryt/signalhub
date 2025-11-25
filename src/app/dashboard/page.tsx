@@ -466,12 +466,12 @@ export default function Dashboard() {
                           </span>
                         </td>
                         <td className="px-2 py-3 text-sm">{trade.quantity}</td>
-                        <td className="px-2 py-3 text-sm">${trade.entryPrice.toFixed(2)}</td>
-                        <td className="px-2 py-3 text-sm">
+                        <td className="px-2 py-3 text-sm text-primary">${trade.entryPrice.toFixed(2)}</td>
+                        <td className="px-2 py-3 text-sm text-primary">
                           {trade.exitPrice ? `$${trade.exitPrice.toFixed(2)}` : trade.takeProfit ? `$${trade.takeProfit.toFixed(2)}` : '-'}
                         </td>
-                        <td className="px-2 py-3 text-sm">{trade.stopLoss ? `$${trade.stopLoss.toFixed(2)}` : '-'}</td>
-                        <td className="px-2 py-3 text-sm">{trade.takeProfit ? `$${trade.takeProfit.toFixed(2)}` : '-'}</td>
+                        <td className="px-2 py-3 text-sm text-primary">{trade.stopLoss ? `$${trade.stopLoss.toFixed(2)}` : '-'}</td>
+                        <td className="px-2 py-3 text-sm text-primary">{trade.takeProfit ? `$${trade.takeProfit.toFixed(2)}` : '-'}</td>
                         <td className="px-2 py-3">
                           <span className="inline-flex px-1.5 py-0.5 rounded text-xs bg-muted text-foreground">
                             {trade.status.toUpperCase()}
