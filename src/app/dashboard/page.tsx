@@ -367,7 +367,8 @@ export default function Dashboard() {
             <span className="text-sm text-muted-foreground">Period:</span>
             <ToggleGroup
               options={[
-                { value: 'daily', label: 'Daily' },
+                { value: 'daily', label: 'Session' },
+                { value: 'previous_session', label: 'Prev Session' },
                 { value: 'weekly', label: 'Weekly' },
                 { value: 'monthly', label: 'Monthly' },
                 { value: 'all', label: 'All Time' }

@@ -31,11 +31,55 @@ export async function GET(request: NextRequest) {
     if (period && period !== 'all') {
       const now = new Date();
       let startDate = new Date();
+      let endDate: Date | undefined;
 
       switch (period) {
-        case 'daily':
-          startDate.setDate(now.getDate() - 1);
+        case 'daily': {
+          // Trading session: 18:00 NY time to 17:00 NY time
+          // Convert current time to NY timezone
+          const nyTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+          const currentHour = nyTime.getHours();
+          const currentMinutes = nyTime.getMinutes();
+
+          // Create session start date in NY timezone
+          const sessionStart = new Date(nyTime);
+          sessionStart.setHours(18, 0, 0, 0);
+
+          // If current time is before 17:00 NY, session started yesterday at 18:00
+          // If current time is after 17:00 NY, session started today at 18:00
+          if (currentHour < 17 || (currentHour === 17 && currentMinutes === 0)) {
+            sessionStart.setDate(sessionStart.getDate() - 1);
+          }
+
+          // Convert back to UTC for database query
+          startDate = new Date(sessionStart.toLocaleString('en-US', { timeZone: 'UTC' }));
           break;
+        }
+        case 'previous_session': {
+          // Previous trading session: goes back one full session
+          const nyTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+          const currentHour = nyTime.getHours();
+          const currentMinutes = nyTime.getMinutes();
+
+          // Calculate current session start
+          const currentSessionStart = new Date(nyTime);
+          currentSessionStart.setHours(18, 0, 0, 0);
+          if (currentHour < 17 || (currentHour === 17 && currentMinutes === 0)) {
+            currentSessionStart.setDate(currentSessionStart.getDate() - 1);
+          }
+
+          // Previous session start is 24 hours before current session start
+          const prevSessionStart = new Date(currentSessionStart);
+          prevSessionStart.setDate(prevSessionStart.getDate() - 1);
+
+          // Previous session end is current session start
+          const prevSessionEnd = new Date(currentSessionStart);
+
+          // Convert to UTC for database query
+          startDate = new Date(prevSessionStart.toLocaleString('en-US', { timeZone: 'UTC' }));
+          endDate = new Date(prevSessionEnd.toLocaleString('en-US', { timeZone: 'UTC' }));
+          break;
+        }
         case 'weekly':
           startDate.setDate(now.getDate() - 7);
           break;
@@ -44,9 +88,16 @@ export async function GET(request: NextRequest) {
           break;
       }
 
-      where.openedAt = {
-        gte: startDate,
-      };
+      if (endDate) {
+        where.openedAt = {
+          gte: startDate,
+          lt: endDate,
+        };
+      } else {
+        where.openedAt = {
+          gte: startDate,
+        };
+      }
     }
 
     // Fetch trades with events
