@@ -18,7 +18,7 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { name, enabled, webhookUrls, strategyFilters, token, accountId, riskPercentage, roundingMode } = body;
+    const { name, enabled, webhookUrls, strategyFilters, contractMapping, token, accountId, riskPercentage, roundingMode } = body;
 
     // Validate required fields
     if (name !== undefined && (!name || name.trim() === '')) {
@@ -57,6 +57,7 @@ export async function PUT(
         ...(enabled !== undefined && { enabled }),
         ...(webhookUrls !== undefined && { webhookUrls }),
         ...(strategyFilters !== undefined && { strategyFilters }),
+        ...(contractMapping !== undefined && { contractMapping }),
         ...(token !== undefined && { token }),
         ...(accountId !== undefined && { accountId }),
         ...(riskPercentage !== undefined && { riskPercentage }),
