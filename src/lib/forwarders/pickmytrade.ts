@@ -25,6 +25,7 @@ export async function forwardToPickMyTrade(payload: any): Promise<void> {
       try {
         const webhookUrls = config.webhookUrls as string[];
         const strategyFilters = config.strategyFilters as Record<string, string[]>;
+        const contractMapping = config.contractMapping as Record<string, string> || {};
 
         // Check if ticker/strategy combination is allowed
         const tickers = Object.keys(strategyFilters);
@@ -85,9 +86,15 @@ export async function forwardToPickMyTrade(payload: any): Promise<void> {
 
         console.log(`PickMyTrade [${config.name}]: Quantity adjusted from ${originalQuantity} to ${finalQuantity} (${riskPercentage}% risk, ${config.roundingMode} rounding)`);
 
+        // Check if there's a custom contract mapping for this ticker
+        const symbolToUse = contractMapping[payload.ticker] || payload.ticker;
+        if (contractMapping[payload.ticker]) {
+          console.log(`PickMyTrade [${config.name}]: Using custom contract ${symbolToUse} instead of ${payload.ticker}`);
+        }
+
         // Transform payload to PickMyTrade format
         const pickMyTradePayload = {
-          symbol: payload.ticker,
+          symbol: symbolToUse,
           date: new Date().toISOString(),
           data: payload.direction === 'long' ? 'buy' : 'sell',
           quantity: finalQuantity,

@@ -13,6 +13,7 @@ interface PickMyTradeConfig {
   webhookUrls: string[];
   allowedTickers: string[]; // Deprecated
   strategyFilters: Record<string, string[]>;
+  contractMapping: Record<string, string>;
   token: string;
   accountId: string;
   riskPercentage: number;
@@ -43,6 +44,7 @@ export default function SettingsPage() {
     enabled: true,
     webhookUrls: [],
     strategyFilters: {},
+    contractMapping: {},
     token: '',
     accountId: '',
     riskPercentage: 100,
@@ -141,6 +143,7 @@ export default function SettingsPage() {
       enabled: config.enabled,
       webhookUrls: config.webhookUrls,
       strategyFilters: config.strategyFilters || {},
+      contractMapping: config.contractMapping || {},
       token: config.token,
       accountId: config.accountId,
       riskPercentage: config.riskPercentage,
@@ -696,6 +699,46 @@ export default function SettingsPage() {
               </p>
             </div>
 
+            {/* Contract Mapping */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Custom Contract Names (Optional)</label>
+              <p className="text-xs text-muted-foreground mb-2">
+                Map ticker symbols to specific contract names for PickMyTrade (e.g., MGC1! → MGCG6)
+              </p>
+              <div className="bg-secondary border border-border rounded-lg p-4">
+                {Object.keys(formData.strategyFilters || {}).length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    Select tickers above to configure contract mappings
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {Object.keys(formData.strategyFilters || {}).map((ticker) => (
+                      <div key={ticker} className="flex items-center gap-3">
+                        <span className="text-sm font-medium w-24">{ticker}</span>
+                        <span className="text-sm text-muted-foreground">→</span>
+                        <input
+                          type="text"
+                          value={formData.contractMapping?.[ticker] || ''}
+                          onChange={(e) => setFormData({
+                            ...formData,
+                            contractMapping: {
+                              ...formData.contractMapping,
+                              [ticker]: e.target.value
+                            }
+                          })}
+                          placeholder={`Contract name (default: ${ticker})`}
+                          className="flex-1 bg-background border border-border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Leave empty to use the original ticker name
+              </p>
+            </div>
+
             {/* Save Button */}
             <div className="pt-4 border-t border-border">
               <Button
@@ -785,6 +828,14 @@ export default function SettingsPage() {
                           {Object.keys(config.strategyFilters || {}).length === 0
                             ? 'All tickers'
                             : `${Object.keys(config.strategyFilters || {}).length} configured`}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground mb-1">Contract Mappings</p>
+                        <p>
+                          {Object.keys(config.contractMapping || {}).filter(k => config.contractMapping[k]).length === 0
+                            ? 'None'
+                            : `${Object.keys(config.contractMapping || {}).filter(k => config.contractMapping[k]).length} configured`}
                         </p>
                       </div>
                     </div>
