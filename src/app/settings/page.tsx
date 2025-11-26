@@ -613,7 +613,7 @@ export default function SettingsPage() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-medium">
-                  Forward Tickers & Strategies (leave empty for all)
+                  Forward Tickers & Strategies *
                 </label>
                 <div className="flex gap-2">
                   <button
@@ -694,7 +694,7 @@ export default function SettingsPage() {
               </div>
               <p className="text-xs text-muted-foreground">
                 {Object.keys(formData.strategyFilters || {}).length === 0
-                  ? 'All tickers will be forwarded'
+                  ? '⚠️ No tickers selected - no signals will be forwarded'
                   : `${Object.keys(formData.strategyFilters || {}).length} ticker(s) configured`}
               </p>
             </div>
@@ -826,7 +826,7 @@ export default function SettingsPage() {
                         <p className="text-muted-foreground mb-1">Ticker Filters</p>
                         <p>
                           {Object.keys(config.strategyFilters || {}).length === 0
-                            ? 'All tickers'
+                            ? 'None - no forwarding'
                             : `${Object.keys(config.strategyFilters || {}).length} configured`}
                         </p>
                       </div>

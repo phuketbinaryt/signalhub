@@ -30,9 +30,10 @@ export async function forwardToPickMyTrade(payload: any): Promise<void> {
         // Check if ticker/strategy combination is allowed
         const tickers = Object.keys(strategyFilters);
 
-        // If no filters set, allow all
+        // If no tickers are selected, skip this config
         if (tickers.length === 0) {
-          console.log(`PickMyTrade [${config.name}]: No filters set, allowing all`);
+          console.log(`PickMyTrade [${config.name}]: No tickers selected, skipping`);
+          return;
         } else {
           // Check if ticker is in filters
           if (!strategyFilters[payload.ticker]) {
