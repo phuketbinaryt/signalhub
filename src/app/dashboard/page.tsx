@@ -1,8 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { StatCard } from '@/components/StatCard';
-import { ToggleGroup } from '@/components/ToggleGroup';
 import { PerformanceCharts } from '@/components/PerformanceCharts';
 import { Button } from '@/components/ui/button';
 import { ActionsDropdown } from '@/components/ActionsDropdown';
@@ -11,9 +9,9 @@ import { PushNotificationButton } from '@/components/PushNotificationButton';
 import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
 import { OpenTradesTable } from '@/components/OpenTradesTable';
 import { useSoundNotifications } from '@/hooks/useSoundNotifications';
-import { TrendingUp, TrendingDown, Settings, BarChart3 } from 'lucide-react';
+import { TrendingUp, TrendingDown, Settings, BarChart3, Zap, Target, DollarSign } from 'lucide-react';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 interface TradeData {
   trades: any[];
@@ -41,6 +39,7 @@ interface TradeData {
 
 export default function Dashboard() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [tradeData, setTradeData] = useState<TradeData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedTicker, setSelectedTicker] = useState('all');
@@ -54,6 +53,14 @@ export default function Dashboard() {
 
   // Sound notifications
   const { soundEnabled, setSoundEnabled, volume, setVolume, playSound } = useSoundNotifications();
+
+  // Handle URL params for strategy filter
+  useEffect(() => {
+    const strategyParam = searchParams.get('strategy');
+    if (strategyParam) {
+      setSelectedStrategy(strategyParam);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     fetchTrades();
@@ -272,11 +279,19 @@ export default function Dashboard() {
     { name: 'Losses', value: stats?.losingTrades || 0, count: stats?.losingTrades || 0, total: stats?.closedTrades || 1 },
   ];
 
+  const periods = [
+    { value: 'daily', label: 'Session' },
+    { value: 'previous_session', label: 'Prev Session' },
+    { value: 'weekly', label: 'Weekly' },
+    { value: 'monthly', label: 'Monthly' },
+    { value: 'all', label: 'All Time' },
+  ];
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#0a0a0a]">
       <PWAInstallPrompt />
       {/* Header */}
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm">
+      <header className="border-b border-[#222] bg-[#0a0a0a]">
         <div className="container mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Image
@@ -289,14 +304,14 @@ export default function Dashboard() {
             />
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-sm text-muted-foreground">State:</span>
+            <span className="text-sm text-gray-400">State:</span>
             <select
               value={statusFilter}
               onChange={(e) => {
                 setStatusFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="bg-secondary border border-border rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className="bg-[#1a1a1a] border border-[#333] rounded px-3 py-1.5 text-sm text-white focus:outline-none focus:border-primary/50"
             >
               <option value="all">All</option>
               <option value="open">Open</option>
@@ -312,7 +327,7 @@ export default function Dashboard() {
             <Button
               onClick={() => router.push('/strategies')}
               variant="outline"
-              className="gap-2"
+              className="gap-2 border-[#333] hover:bg-[#1a1a1a]"
             >
               <BarChart3 className="w-4 h-4" />
               <span className="hidden sm:inline">Strategies</span>
@@ -320,7 +335,7 @@ export default function Dashboard() {
             <Button
               onClick={() => router.push('/settings')}
               variant="outline"
-              className="gap-2"
+              className="gap-2 border-[#333] hover:bg-[#1a1a1a]"
             >
               <Settings className="w-4 h-4" />
               <span className="hidden sm:inline">Settings</span>
@@ -336,14 +351,14 @@ export default function Dashboard() {
         {/* Filters Section */}
         <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
           <div className="flex items-center gap-3">
-            <span className="text-sm text-muted-foreground">Ticker:</span>
+            <span className="text-sm text-gray-400">Ticker:</span>
             <select
               value={selectedTicker}
               onChange={(e) => {
                 setSelectedTicker(e.target.value);
                 setCurrentPage(1);
               }}
-              className="bg-secondary border border-border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary min-w-[120px]"
+              className="bg-[#1a1a1a] border border-[#333] rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:border-primary/50 min-w-[120px]"
             >
               <option value="all">All Tickers</option>
               {tickers.map((ticker: string) => (
@@ -353,14 +368,14 @@ export default function Dashboard() {
               ))}
             </select>
 
-            <span className="text-sm text-muted-foreground">Strategy:</span>
+            <span className="text-sm text-gray-400">Strategy:</span>
             <select
               value={selectedStrategy}
               onChange={(e) => {
                 setSelectedStrategy(e.target.value);
                 setCurrentPage(1);
               }}
-              className="bg-secondary border border-border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary min-w-[120px]"
+              className="bg-[#1a1a1a] border border-[#333] rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:border-primary/50 min-w-[120px]"
             >
               <option value="all">All Strategies</option>
               {strategies.map((strategy: string) => (
@@ -371,22 +386,99 @@ export default function Dashboard() {
             </select>
           </div>
 
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-muted-foreground">Period:</span>
-            <ToggleGroup
-              options={[
-                { value: 'daily', label: 'Session' },
-                { value: 'previous_session', label: 'Prev Session' },
-                { value: 'weekly', label: 'Weekly' },
-                { value: 'monthly', label: 'Monthly' },
-                { value: 'all', label: 'All Time' }
-              ]}
-              value={timePeriod}
-              onChange={(value) => {
-                setTimePeriod(value);
-                setCurrentPage(1);
-              }}
-            />
+          <div className="flex items-center gap-1 bg-[#1a1a1a] rounded-lg p-1">
+            {periods.map((period) => (
+              <button
+                key={period.value}
+                onClick={() => {
+                  setTimePeriod(period.value);
+                  setCurrentPage(1);
+                }}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  timePeriod === period.value
+                    ? 'bg-primary text-white'
+                    : 'text-gray-400 hover:text-white hover:bg-[#2a2a2a]'
+                }`}
+              >
+                {period.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          {/* Total Trades */}
+          <div className="bg-[#111111] border border-[#222] rounded-xl p-5">
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="w-10 h-10 rounded-lg bg-teal-500/20 flex items-center justify-center mb-3">
+                  <Zap className="w-5 h-5 text-teal-400" />
+                </div>
+                <div className="text-sm text-gray-400 mb-1">Total Trades</div>
+                <div className="text-3xl font-bold text-white">{stats?.totalTrades || 0}</div>
+                <div className="text-xs text-gray-500 mt-1">
+                  {stats?.openTrades || 0} open / {stats?.closedTrades || 0} closed
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Total P&L */}
+          <div className="bg-[#111111] border border-[#222] rounded-xl p-5">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <div className="w-10 h-10 rounded-lg bg-teal-500/20 flex items-center justify-center mb-3">
+                  <DollarSign className="w-5 h-5 text-teal-400" />
+                </div>
+                <div className="text-sm text-gray-400 mb-1">Total P&L</div>
+                <div className={`text-3xl font-bold ${(stats?.totalPnl || 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                  ${(stats?.totalPnl || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </div>
+              </div>
+              <div className="text-primary">
+                <svg width="60" height="30" viewBox="0 0 60 30" className="opacity-50">
+                  <path
+                    d="M0 25 L10 20 L20 22 L30 15 L40 18 L50 10 L60 5"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          {/* Win Rate */}
+          <div className="bg-[#111111] border border-[#222] rounded-xl p-5">
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="w-10 h-10 rounded-lg bg-teal-500/20 flex items-center justify-center mb-3">
+                  <Target className="w-5 h-5 text-teal-400" />
+                </div>
+                <div className="text-sm text-gray-400 mb-1">Win Rate</div>
+                <div className="text-3xl font-bold text-white">{(stats?.winRate || 0).toFixed(1)}%</div>
+                <div className="text-xs text-gray-500 mt-1">
+                  {stats?.winningTrades || 0}W / {stats?.losingTrades || 0}L
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Avg Win/Loss */}
+          <div className="bg-[#111111] border border-[#222] rounded-xl p-5">
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="w-10 h-10 rounded-lg bg-teal-500/20 flex items-center justify-center mb-3">
+                  <TrendingUp className="w-5 h-5 text-teal-400" />
+                </div>
+                <div className="text-sm text-gray-400 mb-1">Avg Win</div>
+                <div className="text-3xl font-bold text-emerald-400">${(stats?.avgWin || 0).toFixed(2)}</div>
+                <div className="text-xs text-red-400 mt-1">
+                  Avg Loss: -${Math.abs(stats?.avgLoss || 0).toFixed(2)}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -403,40 +495,40 @@ export default function Dashboard() {
             />
 
             {/* Recent Trades Table */}
-            <div className="bg-card border border-border rounded-lg overflow-hidden mb-8">
-              <div className="px-6 py-4 border-b border-border">
-                <h2 className="text-lg font-semibold">Recent Trades</h2>
+            <div className="bg-[#111111] border border-[#222] rounded-xl overflow-hidden mb-8">
+              <div className="px-6 py-4 border-b border-[#222]">
+                <h2 className="text-lg font-semibold text-white">Recent Trades</h2>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-border bg-secondary/50">
-                      <th className="px-2 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Ticker</th>
-                      <th className="px-2 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Strategy</th>
-                      <th className="px-2 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Dir</th>
-                      <th className="px-2 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Qty</th>
-                      <th className="px-2 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Entry</th>
-                      <th className="px-2 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Exit</th>
-                      <th className="px-2 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">SL</th>
-                      <th className="px-2 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">TP</th>
-                      <th className="px-2 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Status</th>
-                      <th className="px-2 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">P&L</th>
-                      <th className="px-2 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">P&L %</th>
-                      <th className="px-2 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Date</th>
+                    <tr className="border-b border-[#222]">
+                      <th className="px-2 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Ticker</th>
+                      <th className="px-2 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Strategy</th>
+                      <th className="px-2 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Dir</th>
+                      <th className="px-2 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Qty</th>
+                      <th className="px-2 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Entry</th>
+                      <th className="px-2 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Exit</th>
+                      <th className="px-2 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">SL</th>
+                      <th className="px-2 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">TP</th>
+                      <th className="px-2 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="px-2 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">P&L</th>
+                      <th className="px-2 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">P&L %</th>
+                      <th className="px-2 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Date</th>
                       <th
-                        className="px-2 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-primary transition-colors"
+                        className="px-2 py-3 text-left text-xs text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-300 transition-colors"
                         onClick={() => handleSort('time')}
                       >
                         Time {sortBy === 'time' && (sortOrder === 'desc' ? '↓' : '↑')}
                       </th>
-                      <th className="px-2 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Actions</th>
+                      <th className="px-2 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {trades.map((trade: any, index: number) => {
                       const tickerColor = getTickerColor(trade.ticker);
                       return (
-                      <tr key={index} className="border-b border-border hover:bg-secondary/30 transition-colors">
+                      <tr key={index} className="border-b border-[#1a1a1a] hover:bg-[#1a1a1a] transition-colors">
                         <td className="px-2 py-3">
                           <span
                             className="inline-flex px-2 py-1 rounded text-xs font-semibold"
@@ -452,18 +544,18 @@ export default function Dashboard() {
                         </td>
                         <td className="px-2 py-3">
                           {trade.strategy ? (
-                            <span className="inline-flex px-1.5 py-0.5 rounded text-xs bg-accent/20 text-accent-foreground whitespace-nowrap">
+                            <span className="inline-flex px-1.5 py-0.5 rounded text-xs bg-[#1a1a1a] text-gray-400 border border-[#333] whitespace-nowrap">
                               {trade.strategy}
                             </span>
                           ) : (
-                            <span className="text-muted-foreground text-sm">-</span>
+                            <span className="text-gray-600 text-sm">-</span>
                           )}
                         </td>
                         <td className="px-2 py-3">
                           <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs ${
                             trade.direction === 'short'
-                              ? 'bg-destructive/20 text-destructive'
-                              : 'bg-success/20 text-success'
+                              ? 'bg-red-500/20 text-red-400'
+                              : 'bg-emerald-500/20 text-emerald-400'
                           }`}>
                             {trade.direction === 'short' ? (
                               <TrendingDown className="w-3 h-3" />
@@ -473,7 +565,7 @@ export default function Dashboard() {
                             {trade.direction === 'short' ? 'SHORT' : 'LONG'}
                           </span>
                         </td>
-                        <td className="px-2 py-3 text-sm">{trade.quantity}</td>
+                        <td className="px-2 py-3 text-sm text-white">{trade.quantity}</td>
                         <td className="px-2 py-3 text-sm text-cyan-400">${trade.entryPrice.toFixed(2)}</td>
                         <td className="px-2 py-3 text-sm text-cyan-400">
                           {trade.exitPrice ? `$${trade.exitPrice.toFixed(2)}` : trade.takeProfit ? `$${trade.takeProfit.toFixed(2)}` : '-'}
@@ -481,20 +573,20 @@ export default function Dashboard() {
                         <td className="px-2 py-3 text-sm text-cyan-400">{trade.stopLoss ? `$${trade.stopLoss.toFixed(2)}` : '-'}</td>
                         <td className="px-2 py-3 text-sm text-cyan-400">{trade.takeProfit ? `$${trade.takeProfit.toFixed(2)}` : '-'}</td>
                         <td className="px-2 py-3">
-                          <span className="inline-flex px-1.5 py-0.5 rounded text-xs bg-muted text-foreground">
+                          <span className="inline-flex px-1.5 py-0.5 rounded text-xs bg-[#1a1a1a] text-gray-400 border border-[#333]">
                             {trade.status.toUpperCase()}
                           </span>
                         </td>
-                        <td className={`px-2 py-3 text-sm ${(trade.pnl || 0) < 0 ? 'text-destructive' : 'text-success'}`}>
+                        <td className={`px-2 py-3 text-sm ${(trade.pnl || 0) < 0 ? 'text-red-400' : 'text-emerald-400'}`}>
                           {trade.pnl ? `${trade.pnl >= 0 ? '+' : ''}$${trade.pnl.toFixed(2)}` : '-'}
                         </td>
-                        <td className={`px-2 py-3 text-sm ${(trade.pnlPercent || 0) < 0 ? 'text-destructive' : 'text-success'}`}>
+                        <td className={`px-2 py-3 text-sm ${(trade.pnlPercent || 0) < 0 ? 'text-red-400' : 'text-emerald-400'}`}>
                           {trade.pnlPercent ? `${trade.pnlPercent >= 0 ? '+' : ''}${trade.pnlPercent.toFixed(2)}%` : '-'}
                         </td>
-                        <td className="px-2 py-3 text-sm text-muted-foreground whitespace-nowrap">
+                        <td className="px-2 py-3 text-sm text-gray-400 whitespace-nowrap">
                           {new Date(trade.openedAt).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' })}
                         </td>
-                        <td className="px-2 py-3 text-sm text-muted-foreground whitespace-nowrap">
+                        <td className="px-2 py-3 text-sm text-gray-400 whitespace-nowrap">
                           {new Date(trade.openedAt).toLocaleTimeString('en-US', {
                             timeZone: 'America/New_York',
                             hour: '2-digit',
@@ -514,8 +606,8 @@ export default function Dashboard() {
 
               {/* Pagination Controls */}
               {tradeData && tradeData.pagination && (
-                <div className="px-6 py-4 border-t border-border flex items-center justify-between">
-                  <div className="text-sm text-muted-foreground">
+                <div className="px-6 py-4 border-t border-[#222] flex items-center justify-between">
+                  <div className="text-sm text-gray-500">
                     Showing {((currentPage - 1) * TRADES_PER_PAGE) + 1} to{' '}
                     {Math.min(currentPage * TRADES_PER_PAGE, tradeData.pagination.total)} of{' '}
                     {tradeData.pagination.total} trades
@@ -526,6 +618,7 @@ export default function Dashboard() {
                       disabled={currentPage === 1}
                       variant="outline"
                       size="sm"
+                      className="border-[#333] hover:bg-[#1a1a1a]"
                     >
                       Previous
                     </Button>
@@ -543,12 +636,12 @@ export default function Dashboard() {
 
                           return (
                             <div key={page} className="flex items-center gap-1">
-                              {showEllipsis && <span className="px-2 text-muted-foreground">...</span>}
+                              {showEllipsis && <span className="px-2 text-gray-600">...</span>}
                               <Button
                                 onClick={() => setCurrentPage(page)}
                                 variant={currentPage === page ? "default" : "outline"}
                                 size="sm"
-                                className={currentPage === page ? "bg-primary hover:bg-primary/90" : ""}
+                                className={currentPage === page ? "bg-primary hover:bg-primary/90" : "border-[#333] hover:bg-[#1a1a1a]"}
                               >
                                 {page}
                               </Button>
@@ -561,36 +654,13 @@ export default function Dashboard() {
                       disabled={!tradeData.pagination.hasMore}
                       variant="outline"
                       size="sm"
+                      className="border-[#333] hover:bg-[#1a1a1a]"
                     >
                       Next
                     </Button>
                   </div>
                 </div>
               )}
-            </div>
-
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              <StatCard
-                label="Total Trades"
-                value={stats?.totalTrades || 0}
-                subtitle="Signals Processed"
-              />
-              <StatCard
-                label="Total P&L"
-                value={`$${(stats?.totalPnl || 0).toFixed(2)}`}
-                isNegative={(stats?.totalPnl || 0) < 0}
-              />
-              <StatCard
-                label="Win Rate"
-                value={`${(stats?.winRate || 0).toFixed(1)}%`}
-                subtitle="Win Ratio"
-              />
-              <StatCard
-                label="Avg Win/Loss"
-                value={`$${(stats?.avgWin || 0).toFixed(2)}`}
-                subtitle={`Avg Loss: $${(stats?.avgLoss || 0).toFixed(2)}`}
-              />
             </div>
 
             {/* Performance Charts */}
@@ -603,27 +673,27 @@ export default function Dashboard() {
             </div>
 
             {/* By Ticker Table */}
-            <div className="bg-card border border-border rounded-lg overflow-hidden mb-8">
-              <div className="px-6 py-4 border-b border-border">
-                <h2 className="text-lg font-semibold">By Ticker</h2>
+            <div className="bg-[#111111] border border-[#222] rounded-xl overflow-hidden mb-8">
+              <div className="px-6 py-4 border-b border-[#222]">
+                <h2 className="text-lg font-semibold text-white">By Ticker</h2>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-border bg-secondary/50">
-                      <th className="px-6 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Ticker</th>
-                      <th className="px-6 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Strategies</th>
-                      <th className="px-6 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Total Trades</th>
-                      <th className="px-6 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Open</th>
-                      <th className="px-6 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Closed</th>
-                      <th className="px-6 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">W/L</th>
-                      <th className="px-6 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">P&L</th>
+                    <tr className="border-b border-[#222]">
+                      <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Ticker</th>
+                      <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Strategies</th>
+                      <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Total Trades</th>
+                      <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Open</th>
+                      <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Closed</th>
+                      <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">W/L</th>
+                      <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">P&L</th>
                     </tr>
                   </thead>
                   <tbody>
                     {byTicker.map((ticker: any, index: number) => (
-                      <tr key={index} className="border-b border-border hover:bg-secondary/30 transition-colors">
-                        <td className="px-6 py-4">{ticker.ticker}</td>
+                      <tr key={index} className="border-b border-[#1a1a1a] hover:bg-[#1a1a1a] transition-colors">
+                        <td className="px-6 py-4 text-white font-medium">{ticker.ticker}</td>
                         <td className="px-6 py-4">
                           <div className="flex flex-wrap gap-1">
                             {ticker.strategies && ticker.strategies.length > 0 ? (
@@ -634,23 +704,28 @@ export default function Dashboard() {
                                     setSelectedStrategy(strategy);
                                     setCurrentPage(1);
                                   }}
-                                  className="inline-flex px-1.5 py-0.5 rounded text-xs bg-accent/20 text-accent-foreground whitespace-nowrap hover:bg-accent/40 transition-colors cursor-pointer"
+                                  className="inline-flex px-1.5 py-0.5 rounded text-xs bg-[#1a1a1a] text-gray-400 border border-[#333] whitespace-nowrap hover:bg-[#2a2a2a] hover:text-white transition-colors cursor-pointer"
                                 >
                                   {strategy}
                                 </button>
                               ))
                             ) : (
-                              <span className="text-muted-foreground text-sm">-</span>
+                              <span className="text-gray-600 text-sm">-</span>
                             )}
                           </div>
                         </td>
-                        <td className="px-6 py-4">{ticker.totalTrades}</td>
-                        <td className="px-6 py-4">{ticker.openTrades}</td>
-                        <td className="px-6 py-4">{ticker.closedTrades}</td>
+                        <td className="px-6 py-4 text-white">{ticker.totalTrades}</td>
+                        <td className="px-6 py-4 text-gray-400">{ticker.openTrades}</td>
+                        <td className="px-6 py-4 text-gray-400">{ticker.closedTrades}</td>
                         <td className="px-6 py-4">
-                          {ticker.wins}/{ticker.losses} ({((ticker.wins / (ticker.wins + ticker.losses)) * 100 || 0).toFixed(1)}%)
+                          <span className="text-emerald-400">{ticker.wins}</span>
+                          <span className="text-gray-600">/</span>
+                          <span className="text-red-400">{ticker.losses}</span>
+                          <span className="text-gray-500 ml-1">
+                            ({((ticker.wins / (ticker.wins + ticker.losses)) * 100 || 0).toFixed(1)}%)
+                          </span>
                         </td>
-                        <td className={`px-6 py-4 ${ticker.totalPnl < 0 ? 'text-destructive' : 'text-success'}`}>
+                        <td className={`px-6 py-4 font-medium ${ticker.totalPnl < 0 ? 'text-red-400' : 'text-emerald-400'}`}>
                           ${ticker.totalPnl.toFixed(2)}
                         </td>
                       </tr>
@@ -661,22 +736,22 @@ export default function Dashboard() {
             </div>
 
             {/* Webhook Configuration */}
-            <div className="bg-card border border-border rounded-lg overflow-hidden">
-              <div className="px-6 py-4 border-b border-border">
-                <h2 className="text-lg font-semibold">Webhook Configuration</h2>
-                <p className="text-sm text-muted-foreground mt-1">Use the following endpoint in your TradingView alerts:</p>
+            <div className="bg-[#111111] border border-[#222] rounded-xl overflow-hidden">
+              <div className="px-6 py-4 border-b border-[#222]">
+                <h2 className="text-lg font-semibold text-white">Webhook Configuration</h2>
+                <p className="text-sm text-gray-400 mt-1">Use the following endpoint in your TradingView alerts:</p>
               </div>
               <div className="p-6 space-y-4">
                 <div>
-                  <label className="text-sm text-muted-foreground mb-2 block">POST URL</label>
-                  <div className="bg-secondary border border-border rounded p-3 font-mono text-sm overflow-x-auto">
+                  <label className="text-sm text-gray-400 mb-2 block">POST URL</label>
+                  <div className="bg-[#1a1a1a] border border-[#333] rounded p-3 font-mono text-sm text-white overflow-x-auto">
                     {typeof window !== 'undefined' ? window.location.origin : ''}/api/webhook
                   </div>
                 </div>
                 <div>
-                  <label className="text-sm text-muted-foreground mb-2 block">Payload Format</label>
-                  <div className="bg-secondary border border-border rounded p-4 font-mono text-sm overflow-x-auto">
-                    <pre className="text-muted-foreground">{`{
+                  <label className="text-sm text-gray-400 mb-2 block">Payload Format</label>
+                  <div className="bg-[#1a1a1a] border border-[#333] rounded p-4 font-mono text-sm overflow-x-auto">
+                    <pre className="text-gray-400">{`{
   "secret": "your-webhook-secret",
   "action": "entry",
   "ticker": "MNQ",
