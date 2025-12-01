@@ -620,12 +620,16 @@ export default function Dashboard() {
                           <div className="flex flex-wrap gap-1">
                             {ticker.strategies && ticker.strategies.length > 0 ? (
                               ticker.strategies.map((strategy: string) => (
-                                <span
+                                <button
                                   key={strategy}
-                                  className="inline-flex px-1.5 py-0.5 rounded text-xs bg-accent/20 text-accent-foreground whitespace-nowrap"
+                                  onClick={() => {
+                                    setSelectedStrategy(strategy);
+                                    setCurrentPage(1);
+                                  }}
+                                  className="inline-flex px-1.5 py-0.5 rounded text-xs bg-accent/20 text-accent-foreground whitespace-nowrap hover:bg-accent/40 transition-colors cursor-pointer"
                                 >
                                   {strategy}
-                                </span>
+                                </button>
                               ))
                             ) : (
                               <span className="text-muted-foreground text-sm">-</span>
