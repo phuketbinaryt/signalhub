@@ -11,7 +11,7 @@ import { PushNotificationButton } from '@/components/PushNotificationButton';
 import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
 import { OpenTradesTable } from '@/components/OpenTradesTable';
 import { useSoundNotifications } from '@/hooks/useSoundNotifications';
-import { TrendingUp, TrendingDown, Settings } from 'lucide-react';
+import { TrendingUp, TrendingDown, Settings, BarChart3 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
@@ -309,6 +309,14 @@ export default function Dashboard() {
               setVolume={setVolume}
             />
             <PushNotificationButton />
+            <Button
+              onClick={() => router.push('/strategies')}
+              variant="outline"
+              className="gap-2"
+            >
+              <BarChart3 className="w-4 h-4" />
+              <span className="hidden sm:inline">Strategies</span>
+            </Button>
             <Button
               onClick={() => router.push('/settings')}
               variant="outline"
