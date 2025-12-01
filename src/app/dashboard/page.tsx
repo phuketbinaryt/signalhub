@@ -604,6 +604,7 @@ export default function Dashboard() {
                   <thead>
                     <tr className="border-b border-border bg-secondary/50">
                       <th className="px-6 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Ticker</th>
+                      <th className="px-6 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Strategies</th>
                       <th className="px-6 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Total Trades</th>
                       <th className="px-6 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Open</th>
                       <th className="px-6 py-3 text-left text-xs text-muted-foreground uppercase tracking-wider">Closed</th>
@@ -615,6 +616,22 @@ export default function Dashboard() {
                     {byTicker.map((ticker: any, index: number) => (
                       <tr key={index} className="border-b border-border hover:bg-secondary/30 transition-colors">
                         <td className="px-6 py-4">{ticker.ticker}</td>
+                        <td className="px-6 py-4">
+                          <div className="flex flex-wrap gap-1">
+                            {ticker.strategies && ticker.strategies.length > 0 ? (
+                              ticker.strategies.map((strategy: string) => (
+                                <span
+                                  key={strategy}
+                                  className="inline-flex px-1.5 py-0.5 rounded text-xs bg-accent/20 text-accent-foreground whitespace-nowrap"
+                                >
+                                  {strategy}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="text-muted-foreground text-sm">-</span>
+                            )}
+                          </div>
+                        </td>
                         <td className="px-6 py-4">{ticker.totalTrades}</td>
                         <td className="px-6 py-4">{ticker.openTrades}</td>
                         <td className="px-6 py-4">{ticker.closedTrades}</td>

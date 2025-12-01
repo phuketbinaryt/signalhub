@@ -180,11 +180,17 @@ async function calculateStats(where: any) {
         totalPnl: 0,
         wins: 0,
         losses: 0,
+        strategies: new Set<string>(),
       };
     }
 
     const stat = tickerStats[trade.ticker];
     stat.totalTrades++;
+
+    // Track strategies used for this ticker
+    if (trade.strategy) {
+      stat.strategies.add(trade.strategy);
+    }
 
     if (trade.status === 'open') {
       stat.openTrades++;
@@ -199,9 +205,12 @@ async function calculateStats(where: any) {
     }
   });
 
-  const byTicker = Object.values(tickerStats).sort(
-    (a: any, b: any) => b.totalTrades - a.totalTrades
-  );
+  const byTicker = Object.values(tickerStats)
+    .map((stat: any) => ({
+      ...stat,
+      strategies: Array.from(stat.strategies).sort(),
+    }))
+    .sort((a: any, b: any) => b.totalTrades - a.totalTrades);
 
   return {
     overall: {
