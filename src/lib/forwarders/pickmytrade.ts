@@ -27,6 +27,10 @@ export async function forwardToPickMyTrade(payload: any): Promise<void> {
         const strategyFilters = config.strategyFilters as Record<string, string[]>;
         const contractMapping = config.contractMapping as Record<string, string> || {};
 
+        // Debug: Log the full strategy filters for this config
+        console.log(`PickMyTrade [${config.name}]: Strategy filters:`, JSON.stringify(strategyFilters));
+        console.log(`PickMyTrade [${config.name}]: Incoming signal - Ticker: "${payload.ticker}", Strategy: "${payload.strategy}"`);
+
         // Check if ticker/strategy combination is allowed
         const tickers = Object.keys(strategyFilters);
 
@@ -44,16 +48,21 @@ export async function forwardToPickMyTrade(payload: any): Promise<void> {
           // Check if strategy filtering is required for this ticker
           const allowedStrategies = strategyFilters[payload.ticker];
 
-          // If strategies array is not empty, check if payload strategy matches
-          if (allowedStrategies.length > 0) {
-            const payloadStrategy = payload.strategy || '';
-            if (!allowedStrategies.includes(payloadStrategy)) {
-              console.log(`PickMyTrade [${config.name}]: Strategy "${payloadStrategy}" not allowed for ticker ${payload.ticker}`);
+          // If strategies array is not empty and not null, check if payload strategy matches
+          if (allowedStrategies && Array.isArray(allowedStrategies) && allowedStrategies.length > 0) {
+            const payloadStrategy = (payload.strategy || '').trim();
+            // Case-sensitive comparison with trimmed values
+            const isAllowed = allowedStrategies.some(
+              (s) => s.trim() === payloadStrategy
+            );
+
+            if (!isAllowed) {
+              console.log(`PickMyTrade [${config.name}]: Strategy "${payloadStrategy}" NOT in allowed list [${allowedStrategies.join(', ')}] for ticker ${payload.ticker} - SKIPPING`);
               return;
             }
-            console.log(`PickMyTrade [${config.name}]: Ticker ${payload.ticker} with strategy "${payloadStrategy}" allowed`);
+            console.log(`PickMyTrade [${config.name}]: Strategy "${payloadStrategy}" IS in allowed list [${allowedStrategies.join(', ')}] for ticker ${payload.ticker} - FORWARDING`);
           } else {
-            console.log(`PickMyTrade [${config.name}]: Ticker ${payload.ticker} allowed (all strategies)`);
+            console.log(`PickMyTrade [${config.name}]: Ticker ${payload.ticker} allowed (all strategies mode - empty array or null)`);
           }
         }
 
