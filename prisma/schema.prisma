@@ -66,19 +66,20 @@ model Settings {
 }
 
 model PickMyTradeConfig {
-  id              Int      @id @default(autoincrement())
-  name            String   // User-friendly name for this config
-  enabled         Boolean  @default(true)
-  webhookUrls     Json     // Array of webhook URLs
-  allowedTickers  Json     // Deprecated - use strategyFilters instead
-  strategyFilters Json     @default("{}") // Object: { "MNQ": ["Strategy1"], "ES": [] } - empty array = all strategies
-  contractMapping Json     @default("{}") // Object: { "MGC1!": "MGCG6" } - custom contract names per ticker
+  id              Int       @id @default(autoincrement())
+  name            String    // User-friendly name for this config
+  enabled         Boolean   @default(true)
+  webhookUrls     Json      // Array of webhook URLs
+  allowedTickers  Json      // Deprecated - use strategyFilters instead
+  strategyFilters Json      @default("{}") // Object: { "MNQ": ["Strategy1"], "ES": [] } - empty array = all strategies
+  contractMapping Json      @default("{}") // Object: { "MGC1!": "MGCG6" } - custom contract names per ticker
   token           String
   accountId       String
-  riskPercentage  Float    @default(100) // Percentage of original quantity (100 = full size)
-  roundingMode    String   @default("down") // "up" or "down" for fractional quantities
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  riskPercentage  Float     @default(100) // Percentage of original quantity (100 = full size)
+  roundingMode    String    @default("down") // "up" or "down" for fractional quantities
+  pausedUntil     DateTime? // If set and in the future, forwarding is paused until this time
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   @@index([enabled])
 }

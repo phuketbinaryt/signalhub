@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Save, Plus, X, Edit2, Trash2 } from 'lucide-react';
+import { ArrowLeft, Save, Plus, X, Edit2, Trash2, Pause, Play } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
@@ -18,6 +18,7 @@ interface PickMyTradeConfig {
   accountId: string;
   riskPercentage: number;
   roundingMode: string;
+  pausedUntil: string | null;
 }
 
 interface TickerStrategy {
@@ -171,6 +172,36 @@ export default function SettingsPage() {
     } catch (error: any) {
       alert(error.message || 'Failed to delete config');
     }
+  };
+
+  const handlePauseToggle = async (config: PickMyTradeConfig) => {
+    try {
+      const response = await fetch(`/api/settings/pickmytrade/${config.id}/pause`, {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to toggle pause');
+      }
+
+      await fetchConfigs();
+    } catch (error: any) {
+      alert(error.message || 'Failed to toggle pause');
+    }
+  };
+
+  const isPaused = (config: PickMyTradeConfig) => {
+    return config.pausedUntil && new Date(config.pausedUntil) > new Date();
+  };
+
+  const formatPausedUntil = (pausedUntil: string) => {
+    return new Date(pausedUntil).toLocaleString('en-US', {
+      timeZone: 'America/New_York',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   };
 
   const handleSave = async () => {
@@ -792,8 +823,32 @@ export default function SettingsPage() {
                             Disabled
                           </span>
                         )}
+                        {isPaused(config) && (
+                          <span className="px-2 py-1 rounded text-xs bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                            Paused until {formatPausedUntil(config.pausedUntil!)} ET
+                          </span>
+                        )}
                       </div>
                       <div className="flex gap-2">
+                        <Button
+                          onClick={() => handlePauseToggle(config)}
+                          variant="outline"
+                          size="sm"
+                          className={`gap-2 ${isPaused(config) ? 'text-emerald-400 hover:bg-emerald-500/10' : 'text-amber-400 hover:bg-amber-500/10'}`}
+                          title={isPaused(config) ? 'Resume forwarding' : 'Pause until next session (18:00 ET)'}
+                        >
+                          {isPaused(config) ? (
+                            <>
+                              <Play className="w-4 h-4" />
+                              Resume
+                            </>
+                          ) : (
+                            <>
+                              <Pause className="w-4 h-4" />
+                              Pause
+                            </>
+                          )}
+                        </Button>
                         <Button
                           onClick={() => handleEdit(config)}
                           variant="outline"
@@ -866,6 +921,7 @@ export default function SettingsPage() {
             <li>• Only <strong>entry signals</strong> are forwarded to PickMyTrade</li>
             <li>• Take Profit and Stop Loss alerts are not forwarded</li>
             <li>• Disabled configurations will be skipped during forwarding</li>
+            <li>• <strong>Pause</strong> temporarily stops forwarding until the next trading session (18:00 ET)</li>
             <li>• All enabled configurations receive matching signals simultaneously</li>
           </ul>
         </div>

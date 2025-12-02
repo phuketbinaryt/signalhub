@@ -23,6 +23,19 @@ export async function forwardToPickMyTrade(payload: any): Promise<void> {
     // Process each config
     const configPromises = configs.map(async (config) => {
       try {
+        // Check if config is paused
+        if (config.pausedUntil && new Date(config.pausedUntil) > new Date()) {
+          const pausedUntilStr = new Date(config.pausedUntil).toLocaleString('en-US', {
+            timeZone: 'America/New_York',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          });
+          console.log(`PickMyTrade [${config.name}]: ⏸️ PAUSED until ${pausedUntilStr} ET - skipping`);
+          return;
+        }
+
         const webhookUrls = config.webhookUrls as string[];
         const strategyFilters = config.strategyFilters as Record<string, string[]>;
         const contractMapping = config.contractMapping as Record<string, string> || {};
