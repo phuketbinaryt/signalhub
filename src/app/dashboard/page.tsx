@@ -220,6 +220,29 @@ function Dashboard() {
     }
   };
 
+  const handleComplete = async (tradeId: number, exitPrice: number, pnl: number, exitReason: string) => {
+    try {
+      const response = await fetch(`/api/trades/${tradeId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ exitPrice, pnl, exitReason }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to complete trade');
+      }
+
+      // Refresh the trades list
+      await fetchTrades();
+    } catch (error) {
+      console.error('Error completing trade:', error);
+      alert('Failed to complete trade. Please try again.');
+      throw error;
+    }
+  };
+
   const stats = tradeData?.stats.overall;
   const byTicker = tradeData?.stats.byTicker || [];
 
@@ -608,7 +631,11 @@ function Dashboard() {
                           })}
                         </td>
                         <td className="px-2 py-3">
-                          <ActionsDropdown onDelete={() => handleDelete(trade.id)} />
+                          <ActionsDropdown
+                            trade={trade}
+                            onDelete={() => handleDelete(trade.id)}
+                            onComplete={handleComplete}
+                          />
                         </td>
                       </tr>
                     );
