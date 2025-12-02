@@ -28,8 +28,11 @@ export async function forwardToPickMyTrade(payload: any): Promise<void> {
         const contractMapping = config.contractMapping as Record<string, string> || {};
 
         // Debug: Log the full strategy filters for this config
-        console.log(`PickMyTrade [${config.name}]: Strategy filters:`, JSON.stringify(strategyFilters));
-        console.log(`PickMyTrade [${config.name}]: Incoming signal - Ticker: "${payload.ticker}", Strategy: "${payload.strategy}"`);
+        console.log(`\n========== PICKMYTRADE FILTER CHECK ==========`);
+        console.log(`Config: "${config.name}"`);
+        console.log(`Strategy filters from DB:`, JSON.stringify(strategyFilters, null, 2));
+        console.log(`Incoming signal - Ticker: "${payload.ticker}", Strategy: "${payload.strategy}"`);
+        console.log(`===============================================`);
 
         // Check if ticker/strategy combination is allowed
         const tickers = Object.keys(strategyFilters);

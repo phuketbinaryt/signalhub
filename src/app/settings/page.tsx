@@ -739,6 +739,17 @@ export default function SettingsPage() {
               </p>
             </div>
 
+            {/* Debug: Show current strategy filters */}
+            <div className="space-y-2 bg-secondary/50 border border-border rounded-lg p-4">
+              <label className="text-sm font-medium text-muted-foreground">Debug: Current Filter Configuration</label>
+              <pre className="text-xs bg-background p-3 rounded overflow-x-auto max-h-32">
+                {JSON.stringify(formData.strategyFilters, null, 2) || '{}'}
+              </pre>
+              <p className="text-xs text-muted-foreground">
+                Empty array [] = all strategies allowed. Specific array = only those strategies allowed.
+              </p>
+            </div>
+
             {/* Save Button */}
             <div className="pt-4 border-t border-border">
               <Button
