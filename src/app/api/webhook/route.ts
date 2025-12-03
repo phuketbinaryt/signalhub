@@ -75,7 +75,7 @@ function parseTextWebhook(content: string): Partial<WebhookPayload> | null {
 
     // Take Profit
     if (content.includes('Take Profit HIT')) {
-      const tickerMatch = content.match(/^[^\s]+\s+([A-Z0-9!@#$%^&*_+\-=]+)\s+(?:BUY|SELL)/i);
+      const tickerMatch = content.match(/^[^\s]+\s+([A-Z0-9!@#$%^&*_+\-=]+)\s+(?:BUY|SELL|LONG|SHORT)/i);
       const exitMatch = content.match(/Exit:\s*([\d.]+)/);
       const pnlMatch = content.match(/P&L:\s*\$?(-?[\d.]+)/);
 
@@ -85,13 +85,14 @@ function parseTextWebhook(content: string): Partial<WebhookPayload> | null {
           ticker: tickerMatch[1],
           price: parseFloat(exitMatch[1]),
           pnl: pnlMatch ? parseFloat(pnlMatch[1]) : undefined,
+          strategy,
         };
       }
     }
 
     // Stop Loss
     if (content.includes('Stop Loss HIT')) {
-      const tickerMatch = content.match(/^[^\s]+\s+([A-Z0-9!@#$%^&*_+\-=]+)\s+(?:BUY|SELL)/i);
+      const tickerMatch = content.match(/^[^\s]+\s+([A-Z0-9!@#$%^&*_+\-=]+)\s+(?:BUY|SELL|LONG|SHORT)/i);
       const exitMatch = content.match(/Exit:\s*([\d.]+)/);
       const pnlMatch = content.match(/P&L:\s*\$?(-?[\d.]+)/);
 
@@ -101,6 +102,7 @@ function parseTextWebhook(content: string): Partial<WebhookPayload> | null {
           ticker: tickerMatch[1],
           price: parseFloat(exitMatch[1]),
           pnl: pnlMatch ? parseFloat(pnlMatch[1]) : undefined,
+          strategy,
         };
       }
     }

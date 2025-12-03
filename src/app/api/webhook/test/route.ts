@@ -66,7 +66,7 @@ function parseTextWebhook(content: string): ParsedPayload | null {
 
     // Take Profit
     if (content.includes('Take Profit HIT')) {
-      const tickerMatch = content.match(/^[^\s]+\s+([A-Z0-9!@#$%^&*_+\-=]+)\s+(?:BUY|SELL)/i);
+      const tickerMatch = content.match(/^[^\s]+\s+([A-Z0-9!@#$%^&*_+\-=]+)\s+(?:BUY|SELL|LONG|SHORT)/i);
       const exitMatch = content.match(/Exit:\s*([\d.]+)/);
       const pnlMatch = content.match(/P&L:\s*\$?(-?[\d.]+)/);
 
@@ -83,7 +83,7 @@ function parseTextWebhook(content: string): ParsedPayload | null {
 
     // Stop Loss
     if (content.includes('Stop Loss HIT')) {
-      const tickerMatch = content.match(/^[^\s]+\s+([A-Z0-9!@#$%^&*_+\-=]+)\s+(?:BUY|SELL)/i);
+      const tickerMatch = content.match(/^[^\s]+\s+([A-Z0-9!@#$%^&*_+\-=]+)\s+(?:BUY|SELL|LONG|SHORT)/i);
       const exitMatch = content.match(/Exit:\s*([\d.]+)/);
       const pnlMatch = content.match(/P&L:\s*\$?(-?[\d.]+)/);
 
