@@ -68,6 +68,11 @@ export default function SettingsPage() {
   const [logFilter, setLogFilter] = useState({ level: 'all', category: 'all', search: '' });
   const [logsTotal, setLogsTotal] = useState(0);
 
+  // Webhook tester state
+  const [testPayload, setTestPayload] = useState('🚀 CL1! BUY Signal | Entry: 68.50 | SL: 68.00 | TP: 69.50 | Contracts: 2 | Strategy: CL-5M');
+  const [testResult, setTestResult] = useState<any>(null);
+  const [testLoading, setTestLoading] = useState(false);
+
   useEffect(() => {
     // Check if already authenticated in this session
     const isAuth = sessionStorage.getItem('settings-authenticated') === 'true';
@@ -171,6 +176,28 @@ export default function SettingsPage() {
       }
     } catch (error) {
       console.error('Error clearing logs:', error);
+    }
+  };
+
+  const testWebhook = async () => {
+    setTestLoading(true);
+    setTestResult(null);
+
+    try {
+      const response = await fetch('/api/webhook/test', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'text/plain',
+        },
+        body: testPayload,
+      });
+
+      const data = await response.json();
+      setTestResult(data);
+    } catch (error: any) {
+      setTestResult({ error: error.message });
+    } finally {
+      setTestLoading(false);
     }
   };
 
@@ -1205,6 +1232,112 @@ export default function SettingsPage() {
                 </table>
               )}
             </div>
+          </div>
+        </div>
+
+        {/* Webhook Tester */}
+        <div className="mt-10 border-t border-border pt-8">
+          <div className="mb-4">
+            <h2 className="text-2xl font-bold">Webhook Tester</h2>
+            <p className="text-sm text-muted-foreground">
+              Test how your webhook payload will be parsed without creating trades
+            </p>
+          </div>
+
+          <div className="bg-card border border-border rounded-lg p-4 space-y-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">Webhook Payload</label>
+              <textarea
+                value={testPayload}
+                onChange={(e) => setTestPayload(e.target.value)}
+                rows={4}
+                placeholder="Paste your webhook payload here..."
+                className="w-full bg-secondary border border-border rounded-lg px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Paste the exact text that TradingView sends to test parsing
+              </p>
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                onClick={testWebhook}
+                disabled={testLoading || !testPayload.trim()}
+                className="gap-2"
+              >
+                {testLoading ? 'Testing...' : 'Test Parsing'}
+              </Button>
+              <Button
+                onClick={() => setTestPayload('🚀 CL1! BUY Signal | Entry: 68.50 | SL: 68.00 | TP: 69.50 | Contracts: 2 | Strategy: CL-5M')}
+                variant="outline"
+                size="sm"
+              >
+                Load Example
+              </Button>
+            </div>
+
+            {testResult && (
+              <div className="space-y-3">
+                {/* Parse Status */}
+                <div className={`p-3 rounded-lg ${testResult.parseSuccess ? 'bg-emerald-500/10 border border-emerald-500/30' : 'bg-red-500/10 border border-red-500/30'}`}>
+                  <p className={`text-sm font-medium ${testResult.parseSuccess ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {testResult.parseSuccess ? '✓ Payload parsed successfully' : '✗ Failed to parse payload'}
+                  </p>
+                </div>
+
+                {/* Parsed Payload */}
+                {testResult.parsedPayload && (
+                  <div>
+                    <h4 className="text-sm font-medium mb-2">Parsed Result</h4>
+                    <div className="bg-secondary rounded-lg p-3 grid grid-cols-2 gap-2 text-sm">
+                      <div><span className="text-muted-foreground">Action:</span> <span className="text-white">{testResult.parsedPayload.action || '-'}</span></div>
+                      <div><span className="text-muted-foreground">Ticker:</span> <span className="text-white">{testResult.parsedPayload.ticker || '-'}</span></div>
+                      <div><span className="text-muted-foreground">Price:</span> <span className="text-cyan-400">{testResult.parsedPayload.price || '-'}</span></div>
+                      <div><span className="text-muted-foreground">Direction:</span> <span className={testResult.parsedPayload.direction === 'long' ? 'text-emerald-400' : 'text-red-400'}>{testResult.parsedPayload.direction || '-'}</span></div>
+                      <div><span className="text-muted-foreground">Strategy:</span> <span className="text-primary font-medium">{testResult.parsedPayload.strategy || '-'}</span></div>
+                      <div><span className="text-muted-foreground">Quantity:</span> <span className="text-white">{testResult.parsedPayload.quantity || '-'}</span></div>
+                      <div><span className="text-muted-foreground">Stop Loss:</span> <span className="text-white">{testResult.parsedPayload.stopLoss || '-'}</span></div>
+                      <div><span className="text-muted-foreground">Take Profit:</span> <span className="text-white">{testResult.parsedPayload.takeProfit || '-'}</span></div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Strategy Debug */}
+                {testResult.strategyDebug && (
+                  <div>
+                    <h4 className="text-sm font-medium mb-2">Strategy Extraction Debug</h4>
+                    <div className="bg-secondary rounded-lg p-3 space-y-2 text-sm font-mono">
+                      <div>
+                        <span className="text-muted-foreground">Pattern:</span>{' '}
+                        <span className="text-amber-400">{testResult.strategyDebug.regexPattern}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Extracted:</span>{' '}
+                        <span className={testResult.strategyDebug.extractedStrategy ? 'text-emerald-400' : 'text-red-400'}>
+                          {testResult.strategyDebug.extractedStrategy || 'null (not found)'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Text around Strategy:</span>
+                        <pre className="mt-1 text-xs bg-background p-2 rounded overflow-x-auto">
+                          {testResult.strategyDebug.textAroundStrategy}
+                        </pre>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Raw Details */}
+                <details className="text-sm">
+                  <summary className="cursor-pointer text-muted-foreground hover:text-white">
+                    View full response
+                  </summary>
+                  <pre className="mt-2 bg-secondary p-3 rounded-lg overflow-x-auto text-xs">
+                    {JSON.stringify(testResult, null, 2)}
+                  </pre>
+                </details>
+              </div>
+            )}
           </div>
         </div>
 
