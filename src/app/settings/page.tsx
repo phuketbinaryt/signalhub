@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Save, Plus, X, Edit2, Trash2, Pause, Play } from 'lucide-react';
+import { ArrowLeft, Save, Plus, X, Edit2, Trash2, Pause, Play, RefreshCw, Search, Trash } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
@@ -24,6 +24,15 @@ interface PickMyTradeConfig {
 interface TickerStrategy {
   ticker: string;
   strategies: string[];
+}
+
+interface AppLog {
+  id: number;
+  level: string;
+  category: string;
+  message: string;
+  metadata: Record<string, any> | null;
+  createdAt: string;
 }
 
 export default function SettingsPage() {
@@ -52,6 +61,12 @@ export default function SettingsPage() {
     roundingMode: 'down',
   });
   const [customStrategyInputs, setCustomStrategyInputs] = useState<Record<string, string>>({});
+
+  // Log viewer state
+  const [logs, setLogs] = useState<AppLog[]>([]);
+  const [logsLoading, setLogsLoading] = useState(false);
+  const [logFilter, setLogFilter] = useState({ level: 'all', category: 'all', search: '' });
+  const [logsTotal, setLogsTotal] = useState(0);
 
   useEffect(() => {
     // Check if already authenticated in this session
@@ -120,6 +135,42 @@ export default function SettingsPage() {
       }
     } catch (error) {
       console.error('Error fetching tickers:', error);
+    }
+  };
+
+  const fetchLogs = async () => {
+    setLogsLoading(true);
+    try {
+      const params = new URLSearchParams();
+      params.set('limit', '100');
+      if (logFilter.level !== 'all') params.set('level', logFilter.level);
+      if (logFilter.category !== 'all') params.set('category', logFilter.category);
+      if (logFilter.search) params.set('search', logFilter.search);
+
+      const response = await fetch(`/api/logs?${params.toString()}`);
+      if (response.ok) {
+        const data = await response.json();
+        setLogs(data.logs);
+        setLogsTotal(data.total);
+      }
+    } catch (error) {
+      console.error('Error fetching logs:', error);
+    } finally {
+      setLogsLoading(false);
+    }
+  };
+
+  const clearLogs = async () => {
+    if (!confirm('Are you sure you want to clear all logs?')) return;
+
+    try {
+      const response = await fetch('/api/logs', { method: 'DELETE' });
+      if (response.ok) {
+        setLogs([]);
+        setLogsTotal(0);
+      }
+    } catch (error) {
+      console.error('Error clearing logs:', error);
     }
   };
 
@@ -1018,6 +1069,144 @@ export default function SettingsPage() {
             )}
           </>
         )}
+
+        {/* Log Viewer */}
+        <div className="mt-10 border-t border-border pt-8">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-2xl font-bold">Activity Logs</h2>
+              <p className="text-sm text-muted-foreground">
+                {logsTotal > 0 ? `${logsTotal} log entries` : 'No logs yet'}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={fetchLogs}
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                disabled={logsLoading}
+              >
+                <RefreshCw className={`w-4 h-4 ${logsLoading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+              <Button
+                onClick={clearLogs}
+                variant="outline"
+                size="sm"
+                className="gap-2 text-destructive hover:bg-destructive/10"
+              >
+                <Trash className="w-4 h-4" />
+                Clear
+              </Button>
+            </div>
+          </div>
+
+          {/* Filters */}
+          <div className="flex gap-3 mb-4 flex-wrap">
+            <select
+              value={logFilter.level}
+              onChange={(e) => setLogFilter({ ...logFilter, level: e.target.value })}
+              className="bg-secondary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <option value="all">All Levels</option>
+              <option value="info">Info</option>
+              <option value="warn">Warning</option>
+              <option value="error">Error</option>
+            </select>
+            <select
+              value={logFilter.category}
+              onChange={(e) => setLogFilter({ ...logFilter, category: e.target.value })}
+              className="bg-secondary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <option value="all">All Categories</option>
+              <option value="webhook">Webhook</option>
+              <option value="telegram">Telegram</option>
+              <option value="pickmytrade">PickMyTrade</option>
+              <option value="push">Push</option>
+              <option value="system">System</option>
+            </select>
+            <div className="flex-1 min-w-[200px]">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  value={logFilter.search}
+                  onChange={(e) => setLogFilter({ ...logFilter, search: e.target.value })}
+                  placeholder="Search logs..."
+                  className="w-full bg-secondary border border-border rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+            </div>
+            <Button onClick={fetchLogs} size="sm" className="gap-2">
+              <Search className="w-4 h-4" />
+              Search
+            </Button>
+          </div>
+
+          {/* Logs Table */}
+          <div className="bg-card border border-border rounded-lg overflow-hidden">
+            <div className="max-h-[500px] overflow-y-auto">
+              {logs.length === 0 ? (
+                <div className="p-8 text-center text-muted-foreground">
+                  {logsLoading ? 'Loading...' : 'No logs found. Logs will appear here when webhooks are received.'}
+                </div>
+              ) : (
+                <table className="w-full text-sm">
+                  <thead className="bg-secondary/50 sticky top-0">
+                    <tr>
+                      <th className="text-left p-3 font-medium">Time</th>
+                      <th className="text-left p-3 font-medium">Level</th>
+                      <th className="text-left p-3 font-medium">Category</th>
+                      <th className="text-left p-3 font-medium">Message</th>
+                      <th className="text-left p-3 font-medium">Details</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {logs.map((log) => (
+                      <tr key={log.id} className="hover:bg-secondary/30">
+                        <td className="p-3 whitespace-nowrap text-muted-foreground">
+                          {new Date(log.createdAt).toLocaleString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit',
+                          })}
+                        </td>
+                        <td className="p-3">
+                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                            log.level === 'error' ? 'bg-red-500/20 text-red-400' :
+                            log.level === 'warn' ? 'bg-amber-500/20 text-amber-400' :
+                            'bg-emerald-500/20 text-emerald-400'
+                          }`}>
+                            {log.level}
+                          </span>
+                        </td>
+                        <td className="p-3">
+                          <span className="px-2 py-0.5 rounded text-xs bg-primary/20 text-primary">
+                            {log.category}
+                          </span>
+                        </td>
+                        <td className="p-3">{log.message}</td>
+                        <td className="p-3 text-muted-foreground">
+                          {log.metadata && (
+                            <span className="text-xs font-mono">
+                              {log.metadata.ticker && `${log.metadata.ticker} `}
+                              {log.metadata.strategy && `• ${log.metadata.strategy} `}
+                              {log.metadata.configName && `• ${log.metadata.configName} `}
+                              {log.metadata.error && <span className="text-red-400">{log.metadata.error}</span>}
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </div>
 
         {/* Info Box */}
         <div className="mt-6 bg-accent/10 border border-accent/20 rounded-lg p-4">

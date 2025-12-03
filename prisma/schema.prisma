@@ -83,3 +83,16 @@ model PickMyTradeConfig {
 
   @@index([enabled])
 }
+
+model AppLog {
+  id        Int      @id @default(autoincrement())
+  level     String   // "info" | "warn" | "error" | "debug"
+  category  String   // "webhook" | "telegram" | "pickmytrade" | "push" | "system"
+  message   String
+  metadata  Json?    // Additional structured data (ticker, strategy, config name, etc.)
+  createdAt DateTime @default(now())
+
+  @@index([level])
+  @@index([category])
+  @@index([createdAt])
+}

@@ -1,3 +1,5 @@
+import { logger } from '../logger';
+
 const MAX_RETRIES = 3;
 const INITIAL_RETRY_DELAY = 1000; // 1 second
 const FETCH_TIMEOUT = 10000; // 10 seconds
@@ -59,6 +61,10 @@ export async function forwardToTelegram(payload: any): Promise<void> {
       }
 
       console.log('Successfully forwarded to Telegram');
+      logger.info('telegram', 'Forwarded to Telegram', {
+        ticker: payload.ticker,
+        action: payload.action,
+      });
       return;
     } catch (error: any) {
       lastError = error;
@@ -86,6 +92,11 @@ export async function forwardToTelegram(payload: any): Promise<void> {
 
   // All retries exhausted
   console.error(`Telegram forwarder failed after ${MAX_RETRIES} attempts:`, lastError);
+  logger.error('telegram', `Failed after ${MAX_RETRIES} retries`, {
+    ticker: payload.ticker,
+    action: payload.action,
+    error: lastError?.message,
+  });
   throw lastError;
 }
 

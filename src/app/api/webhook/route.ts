@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { dispatchForwarders } from '@/lib/forwarders';
 import { notifyClients } from '@/lib/sse';
 import { sendPushNotification, formatTradeNotification } from '@/lib/webpush';
+import { logger } from '@/lib/logger';
 
 // Force dynamic rendering for this API route
 export const dynamic = 'force-dynamic';
@@ -197,6 +198,14 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString(),
     });
 
+    // Log to database
+    logger.info('webhook', `Received ${payload.action} signal`, {
+      ticker: payload.ticker,
+      action: payload.action,
+      direction: payload.direction,
+      strategy: payload.strategy,
+    });
+
     // Process based on action type
     let trade;
     switch (payload.action) {
@@ -252,6 +261,9 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Webhook processing error:', error);
+    logger.error('webhook', 'Webhook processing error', {
+      error: (error as Error).message,
+    });
     return NextResponse.json(
       { error: 'Internal server error', details: (error as Error).message },
       { status: 500 }

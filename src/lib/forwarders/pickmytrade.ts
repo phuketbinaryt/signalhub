@@ -1,4 +1,5 @@
 import { prisma } from '../prisma';
+import { logger } from '../logger';
 
 export async function forwardToPickMyTrade(payload: any): Promise<void> {
   try {
@@ -33,6 +34,11 @@ export async function forwardToPickMyTrade(payload: any): Promise<void> {
             minute: '2-digit',
           });
           console.log(`PickMyTrade [${config.name}]: ⏸️ PAUSED until ${pausedUntilStr} ET - skipping`);
+          logger.info('pickmytrade', `Skipped (paused) - ${config.name}`, {
+            ticker: payload.ticker,
+            configName: config.name,
+            pausedUntil: pausedUntilStr,
+          });
           return;
         }
 
@@ -74,6 +80,12 @@ export async function forwardToPickMyTrade(payload: any): Promise<void> {
 
             if (!isAllowed) {
               console.log(`PickMyTrade [${config.name}]: Strategy "${payloadStrategy}" NOT in allowed list [${allowedStrategies.join(', ')}] for ticker ${payload.ticker} - SKIPPING`);
+              logger.info('pickmytrade', `Skipped (strategy filtered) - ${config.name}`, {
+                ticker: payload.ticker,
+                strategy: payloadStrategy,
+                configName: config.name,
+                allowedStrategies: allowedStrategies.join(', '),
+              });
               return;
             }
             console.log(`PickMyTrade [${config.name}]: Strategy "${payloadStrategy}" IS in allowed list [${allowedStrategies.join(', ')}] for ticker ${payload.ticker} - FORWARDING`);
@@ -180,8 +192,19 @@ export async function forwardToPickMyTrade(payload: any): Promise<void> {
             }
 
             console.log(`✅ Successfully forwarded to PickMyTrade [${config.name}]: ${url}`);
+            logger.info('pickmytrade', `Forwarded to ${config.name}`, {
+              ticker: payload.ticker,
+              direction: payload.direction,
+              configName: config.name,
+              strategy: payload.strategy,
+            });
           } catch (error: any) {
             console.error(`❌ Failed to forward to PickMyTrade [${config.name}] (${url}):`, error.message);
+            logger.error('pickmytrade', `Failed to forward to ${config.name}`, {
+              ticker: payload.ticker,
+              configName: config.name,
+              error: error.message,
+            });
             throw error;
           }
         });
