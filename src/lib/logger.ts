@@ -54,7 +54,7 @@ class AppLogger {
           level,
           category,
           message,
-          metadata: metadata || null,
+          metadata: metadata ? (metadata as any) : undefined,
         },
       });
 
