@@ -51,6 +51,7 @@ export default function SettingsPage() {
     riskPercentage: 100,
     roundingMode: 'down',
   });
+  const [customStrategyInputs, setCustomStrategyInputs] = useState<Record<string, string>>({});
 
   useEffect(() => {
     // Check if already authenticated in this session
@@ -375,6 +376,67 @@ export default function SettingsPage() {
     });
   };
 
+  // Add a custom strategy to a ticker
+  const addCustomStrategy = (ticker: string) => {
+    const strategyName = (customStrategyInputs[ticker] || '').trim();
+    if (!strategyName) return;
+
+    const filters = { ...(formData.strategyFilters || {}) };
+
+    // If ticker is not selected, add it with this strategy
+    if (!filters[ticker]) {
+      filters[ticker] = [strategyName];
+    } else if (filters[ticker].length === 0) {
+      // Currently "all strategies", switch to just this custom one
+      filters[ticker] = [strategyName];
+    } else {
+      // Add to existing strategies if not already present
+      if (!filters[ticker].includes(strategyName)) {
+        filters[ticker] = [...filters[ticker], strategyName];
+      }
+    }
+
+    setFormData({
+      ...formData,
+      strategyFilters: filters,
+    });
+
+    // Clear the input
+    setCustomStrategyInputs({
+      ...customStrategyInputs,
+      [ticker]: '',
+    });
+  };
+
+  // Get all strategies for a ticker (known + custom)
+  const getAllStrategiesForTicker = (ticker: string) => {
+    const tickerData = tickerStrategies.find(ts => ts.ticker === ticker);
+    const knownStrategies = tickerData?.strategies || [];
+    const selectedStrategies = formData.strategyFilters?.[ticker] || [];
+
+    // Combine known strategies with any custom ones that have been added
+    const allStrategies = new Set([...knownStrategies, ...selectedStrategies]);
+    return Array.from(allStrategies);
+  };
+
+  // Remove a custom strategy from a ticker
+  const removeStrategy = (ticker: string, strategy: string) => {
+    const filters = { ...(formData.strategyFilters || {}) };
+    if (!filters[ticker]) return;
+
+    filters[ticker] = filters[ticker].filter(s => s !== strategy);
+
+    // If no strategies left, remove the ticker entirely
+    if (filters[ticker].length === 0) {
+      delete filters[ticker];
+    }
+
+    setFormData({
+      ...formData,
+      strategyFilters: filters,
+    });
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -689,32 +751,77 @@ export default function SettingsPage() {
                           )}
                         </div>
 
-                        {/* Strategies (show if ticker has multiple strategies) */}
-                        {ts.strategies.length > 1 && isTickerSelected(ts.ticker) && (
+                        {/* Strategies (show when ticker is selected) */}
+                        {isTickerSelected(ts.ticker) && (
                           <div className="p-3 pt-0 space-y-2">
-                            <button
-                              onClick={() => selectAllStrategiesForTicker(ts.ticker)}
-                              className="text-xs text-primary hover:underline mb-2"
-                            >
-                              {isAllStrategiesSelected(ts.ticker) ? 'Select Specific' : 'All Strategies'}
-                            </button>
+                            <div className="flex items-center justify-between">
+                              <button
+                                onClick={() => selectAllStrategiesForTicker(ts.ticker)}
+                                className="text-xs text-primary hover:underline"
+                              >
+                                {isAllStrategiesSelected(ts.ticker) ? 'Select Specific' : 'All Strategies'}
+                              </button>
+                            </div>
                             {!isAllStrategiesSelected(ts.ticker) && (
-                              <div className="grid grid-cols-1 gap-2 pl-6">
-                                {ts.strategies.map((strategy) => (
-                                  <label
-                                    key={strategy}
-                                    className="flex items-center gap-2 cursor-pointer hover:bg-background/50 rounded p-2 transition-colors"
+                              <>
+                                {/* Strategy list */}
+                                <div className="grid grid-cols-1 gap-2 pl-6">
+                                  {getAllStrategiesForTicker(ts.ticker).map((strategy) => {
+                                    const isKnown = ts.strategies.includes(strategy);
+                                    return (
+                                      <div
+                                        key={strategy}
+                                        className="flex items-center gap-2 hover:bg-background/50 rounded p-2 transition-colors"
+                                      >
+                                        <input
+                                          type="checkbox"
+                                          checked={isStrategySelected(ts.ticker, strategy)}
+                                          onChange={() => toggleStrategy(ts.ticker, strategy)}
+                                          className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary"
+                                        />
+                                        <span className="text-xs flex-1">{strategy}</span>
+                                        {!isKnown && (
+                                          <span className="text-xs px-1.5 py-0.5 bg-primary/20 text-primary rounded">
+                                            custom
+                                          </span>
+                                        )}
+                                        {!isKnown && (
+                                          <button
+                                            onClick={() => removeStrategy(ts.ticker, strategy)}
+                                            className="text-xs text-destructive hover:underline"
+                                          >
+                                            remove
+                                          </button>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+
+                                {/* Add custom strategy input */}
+                                <div className="flex gap-2 pl-6 mt-2">
+                                  <input
+                                    type="text"
+                                    value={customStrategyInputs[ts.ticker] || ''}
+                                    onChange={(e) => setCustomStrategyInputs({
+                                      ...customStrategyInputs,
+                                      [ts.ticker]: e.target.value,
+                                    })}
+                                    onKeyPress={(e) => e.key === 'Enter' && addCustomStrategy(ts.ticker)}
+                                    placeholder="Add custom strategy name..."
+                                    className="flex-1 bg-background border border-border rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                                  />
+                                  <button
+                                    onClick={() => addCustomStrategy(ts.ticker)}
+                                    className="px-2 py-1 bg-primary text-white rounded text-xs hover:bg-primary/90"
                                   >
-                                    <input
-                                      type="checkbox"
-                                      checked={isStrategySelected(ts.ticker, strategy)}
-                                      onChange={() => toggleStrategy(ts.ticker, strategy)}
-                                      className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary"
-                                    />
-                                    <span className="text-xs">{strategy}</span>
-                                  </label>
-                                ))}
-                              </div>
+                                    Add
+                                  </button>
+                                </div>
+                                <p className="text-xs text-muted-foreground pl-6">
+                                  Add strategy names before they generate signals
+                                </p>
+                              </>
                             )}
                           </div>
                         )}
