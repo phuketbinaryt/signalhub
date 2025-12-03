@@ -1,3 +1,26 @@
+const MAX_RETRIES = 3;
+const INITIAL_RETRY_DELAY = 1000; // 1 second
+const FETCH_TIMEOUT = 10000; // 10 seconds
+
+async function fetchWithTimeout(url: string, options: RequestInit, timeout: number): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    return response;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+async function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 export async function forwardToTelegram(payload: any): Promise<void> {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   const chatId = process.env.TELEGRAM_CHAT_ID;
@@ -7,33 +30,63 @@ export async function forwardToTelegram(payload: any): Promise<void> {
     return;
   }
 
-  try {
-    const message = formatTelegramMessage(payload);
+  const message = formatTelegramMessage(payload);
+  const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
 
-    const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+  let lastError: Error | null = null;
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text: message,
-        parse_mode: 'Markdown',
-      }),
-    });
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const response = await fetchWithTimeout(
+        url,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            chat_id: chatId,
+            text: message,
+            parse_mode: 'Markdown',
+          }),
+        },
+        FETCH_TIMEOUT
+      );
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`Telegram API failed: ${JSON.stringify(errorData)}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Telegram API failed: ${JSON.stringify(errorData)}`);
+      }
+
+      console.log('Successfully forwarded to Telegram');
+      return;
+    } catch (error: any) {
+      lastError = error;
+
+      // Check if it's a retryable error (network/timeout)
+      const isRetryable =
+        error.name === 'AbortError' ||
+        error.code === 'ETIMEDOUT' ||
+        error.code === 'ECONNRESET' ||
+        error.code === 'ENOTFOUND' ||
+        error.cause?.code === 'ETIMEDOUT' ||
+        error.cause?.code === 'ECONNRESET';
+
+      if (isRetryable && attempt < MAX_RETRIES) {
+        const delay = INITIAL_RETRY_DELAY * Math.pow(2, attempt - 1);
+        console.warn(`Telegram forwarder attempt ${attempt}/${MAX_RETRIES} failed (${error.code || error.name}), retrying in ${delay}ms...`);
+        await sleep(delay);
+      } else if (!isRetryable) {
+        // Non-retryable error, fail immediately
+        console.error('Telegram forwarder failed with non-retryable error:', error);
+        throw error;
+      }
     }
-
-    console.log('Successfully forwarded to Telegram');
-  } catch (error) {
-    console.error('Failed to forward to Telegram:', error);
-    throw error;
   }
+
+  // All retries exhausted
+  console.error(`Telegram forwarder failed after ${MAX_RETRIES} attempts:`, lastError);
+  throw lastError;
 }
 
 function formatTelegramMessage(payload: any): string {
