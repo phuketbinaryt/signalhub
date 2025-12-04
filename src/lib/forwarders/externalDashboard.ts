@@ -13,22 +13,40 @@ export async function forwardToExternalDashboard(payload: any): Promise<void> {
   }
 
   try {
-    // Transform payload to external dashboard format
-    const externalPayload = {
-      secret: externalSecret,
+    // Map internal action to buy/sell format expected by mrtrader.io
+    let action: string;
+    if (payload.action === 'entry') {
+      action = payload.direction === 'short' ? 'sell' : 'buy';
+    } else if (payload.action === 'take_profit' || payload.action === 'stop_loss') {
+      // Closing a position - opposite of the original direction
+      action = payload.direction === 'short' ? 'buy' : 'sell';
+    } else {
+      action = payload.action; // fallback
+    }
+
+    // Transform payload to mrtrader.io format
+    // Only include fields they expect: symbol, action, price, stopLoss, takeProfit
+    const externalPayload: Record<string, any> = {
       symbol: payload.ticker,
-      action: payload.action,
+      action: action,
       price: payload.price,
-      timestamp: Date.now(),
-      stopLoss: payload.stopLoss || null,
-      takeProfit: payload.takeProfit || null,
-      positionSize: payload.quantity || 1,
     };
+
+    // Only include stopLoss and takeProfit if they exist
+    if (payload.stopLoss !== undefined && payload.stopLoss !== null) {
+      externalPayload.stopLoss = payload.stopLoss;
+    }
+    if (payload.takeProfit !== undefined && payload.takeProfit !== null) {
+      externalPayload.takeProfit = payload.takeProfit;
+    }
+
+    // Build URL with secret as query parameter
+    const urlWithSecret = `${externalUrl}${externalUrl.includes('?') ? '&' : '?'}secret=${externalSecret}`;
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
 
-    const response = await fetch(externalUrl, {
+    const response = await fetch(urlWithSecret, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
