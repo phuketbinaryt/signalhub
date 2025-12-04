@@ -1054,14 +1054,37 @@ export default function SettingsPage() {
                         </Button>
                       </div>
                     </div>
+                    {/* Tickers & Strategies */}
+                    <div className="mb-4">
+                      <p className="text-muted-foreground mb-2 text-sm">Tickers & Strategies</p>
+                      {Object.keys(config.strategyFilters || {}).length === 0 ? (
+                        <p className="text-sm text-amber-400">No tickers configured - no forwarding</p>
+                      ) : (
+                        <div className="flex flex-wrap gap-2">
+                          {Object.entries(config.strategyFilters || {}).map(([ticker, strategies]) => (
+                            <div key={ticker} className="bg-secondary rounded-lg px-3 py-2 text-sm">
+                              <span className="font-medium text-white">{ticker}</span>
+                              {strategies && strategies.length > 0 ? (
+                                <span className="text-muted-foreground ml-2">
+                                  ({strategies.join(', ')})
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground ml-2">(all strategies)</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
                         <p className="text-muted-foreground mb-1">Token</p>
-                        <p className="font-mono">{config.token}</p>
+                        <p className="font-mono text-xs truncate">{config.token}</p>
                       </div>
                       <div>
                         <p className="text-muted-foreground mb-1">Account ID</p>
-                        <p className="font-mono">{config.accountId}</p>
+                        <p className="font-mono text-xs">{config.accountId}</p>
                       </div>
                       <div>
                         <p className="text-muted-foreground mb-1">Risk Settings</p>
@@ -1072,22 +1095,6 @@ export default function SettingsPage() {
                       <div>
                         <p className="text-muted-foreground mb-1">Webhook URLs</p>
                         <p>{config.webhookUrls.length} configured</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground mb-1">Ticker Filters</p>
-                        <p>
-                          {Object.keys(config.strategyFilters || {}).length === 0
-                            ? 'None - no forwarding'
-                            : `${Object.keys(config.strategyFilters || {}).length} configured`}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground mb-1">Contract Mappings</p>
-                        <p>
-                          {Object.keys(config.contractMapping || {}).filter(k => config.contractMapping[k]).length === 0
-                            ? 'None'
-                            : `${Object.keys(config.contractMapping || {}).filter(k => config.contractMapping[k]).length} configured`}
-                        </p>
                       </div>
                     </div>
                   </div>
