@@ -25,20 +25,14 @@ export async function forwardToExternalDashboard(payload: any): Promise<void> {
     }
 
     // Transform payload to mrtrader.io format
-    // Only include fields they expect: symbol, action, price, stopLoss, takeProfit
-    const externalPayload: Record<string, any> = {
+    const externalPayload = {
       symbol: payload.ticker,
       action: action,
       price: payload.price,
+      stopLoss: payload.stopLoss ?? null,
+      takeProfit: payload.takeProfit ?? null,
+      positionSize: payload.quantity || 1,
     };
-
-    // Only include stopLoss and takeProfit if they exist
-    if (payload.stopLoss !== undefined && payload.stopLoss !== null) {
-      externalPayload.stopLoss = payload.stopLoss;
-    }
-    if (payload.takeProfit !== undefined && payload.takeProfit !== null) {
-      externalPayload.takeProfit = payload.takeProfit;
-    }
 
     // Build URL with secret as query parameter
     const urlWithSecret = `${externalUrl}${externalUrl.includes('?') ? '&' : '?'}secret=${externalSecret}`;
