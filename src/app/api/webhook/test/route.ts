@@ -21,9 +21,9 @@ function parseTextWebhook(content: string): ParsedPayload | null {
     const strategyMatch = content.match(/Strategy:\s*([^\s|]+)/);
     const strategy = strategyMatch ? strategyMatch[1] : undefined;
 
-    // Entry signals
+    // Entry signals - regex supports optional emoji prefix (e.g., "🚀 CL1! BUY" or "CL1! BUY")
     if (content.includes('BUY Signal') && !content.includes('SKIPPED')) {
-      const tickerMatch = content.match(/^[^\s]+\s+([A-Z0-9!@#$%^&*_+\-=]+)\s+BUY/i);
+      const tickerMatch = content.match(/^(?:[^\s]+\s+)?([A-Z0-9!@#$%^&*_+\-=]+)\s+BUY/i);
       const entryMatch = content.match(/Entry:\s*([\d.]+)/);
       const slMatch = content.match(/SL:\s*([\d.]+)/);
       const tpMatch = content.match(/TP:\s*([\d.]+)/);
@@ -44,7 +44,7 @@ function parseTextWebhook(content: string): ParsedPayload | null {
     }
 
     if (content.includes('SELL Signal') && !content.includes('SKIPPED')) {
-      const tickerMatch = content.match(/^[^\s]+\s+([A-Z0-9!@#$%^&*_+\-=]+)\s+SELL/i);
+      const tickerMatch = content.match(/^(?:[^\s]+\s+)?([A-Z0-9!@#$%^&*_+\-=]+)\s+SELL/i);
       const entryMatch = content.match(/Entry:\s*([\d.]+)/);
       const slMatch = content.match(/SL:\s*([\d.]+)/);
       const tpMatch = content.match(/TP:\s*([\d.]+)/);
@@ -64,9 +64,9 @@ function parseTextWebhook(content: string): ParsedPayload | null {
       }
     }
 
-    // Take Profit
+    // Take Profit - regex supports optional emoji prefix
     if (content.includes('Take Profit HIT')) {
-      const tickerMatch = content.match(/^[^\s]+\s+([A-Z0-9!@#$%^&*_+\-=]+)\s+(?:BUY|SELL|LONG|SHORT)/i);
+      const tickerMatch = content.match(/^(?:[^\s]+\s+)?([A-Z0-9!@#$%^&*_+\-=]+)\s+(?:BUY|SELL|LONG|SHORT)/i);
       const exitMatch = content.match(/Exit:\s*([\d.]+)/);
       const pnlMatch = content.match(/P&L:\s*\$?(-?[\d.]+)/);
 
@@ -81,9 +81,9 @@ function parseTextWebhook(content: string): ParsedPayload | null {
       }
     }
 
-    // Stop Loss
+    // Stop Loss - regex supports optional emoji prefix
     if (content.includes('Stop Loss HIT')) {
-      const tickerMatch = content.match(/^[^\s]+\s+([A-Z0-9!@#$%^&*_+\-=]+)\s+(?:BUY|SELL|LONG|SHORT)/i);
+      const tickerMatch = content.match(/^(?:[^\s]+\s+)?([A-Z0-9!@#$%^&*_+\-=]+)\s+(?:BUY|SELL|LONG|SHORT)/i);
       const exitMatch = content.match(/Exit:\s*([\d.]+)/);
       const pnlMatch = content.match(/P&L:\s*\$?(-?[\d.]+)/);
 
