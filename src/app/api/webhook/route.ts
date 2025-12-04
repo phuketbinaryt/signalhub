@@ -280,36 +280,8 @@ async function handleEntry(payload: WebhookPayload) {
 
   console.log(`📥 Entry Payload - Ticker: ${ticker}, Price: ${price}, Direction: ${direction}, Quantity: ${quantity}, Strategy: ${strategy || 'N/A'}, Type: ${typeof quantity}`);
 
-  // Deduplication: Check if ANY open trade exists for this ticker created in the last 60 seconds
-  // This is more aggressive but prevents duplicates from race conditions or strategy mismatches
-  const recentCutoff = new Date(Date.now() - 60 * 1000); // 60 seconds ago
-  const existingTrade = await prisma.trade.findFirst({
-    where: {
-      ticker,
-      status: 'open',
-      openedAt: { gte: recentCutoff },
-    },
-    orderBy: { openedAt: 'desc' },
-  });
-
-  if (existingTrade) {
-    const timeSinceCreation = Math.round((Date.now() - existingTrade.openedAt.getTime()) / 1000);
-    console.log(`⚠️ Duplicate entry detected - Trade ID ${existingTrade.id} already exists for ${ticker} (created ${timeSinceCreation}s ago)`);
-    console.log(`   Existing: direction=${existingTrade.direction}, strategy=${existingTrade.strategy}`);
-    console.log(`   Incoming: direction=${direction}, strategy=${strategy}`);
-    logger.warn('webhook', 'Duplicate entry skipped', {
-      ticker,
-      strategy,
-      existingTradeId: existingTrade.id,
-      existingStrategy: existingTrade.strategy,
-      existingDirection: existingTrade.direction,
-      incomingDirection: direction,
-      timeSinceCreation,
-    });
-    return existingTrade;
-  }
-
-  // Create new trade
+  // Create the trade first, then dedupe - this handles race conditions
+  // where two signals arrive simultaneously
   const trade = await prisma.trade.create({
     data: {
       ticker,
@@ -332,6 +304,48 @@ async function handleEntry(payload: WebhookPayload) {
       events: true,
     },
   });
+
+  // Now check if there are duplicate trades (same ticker, created within 60 seconds)
+  const recentCutoff = new Date(Date.now() - 60 * 1000);
+  const recentTrades = await prisma.trade.findMany({
+    where: {
+      ticker,
+      status: 'open',
+      openedAt: { gte: recentCutoff },
+    },
+    orderBy: { openedAt: 'asc' }, // Oldest first
+  });
+
+  // If there are multiple recent trades for same ticker, keep only the oldest
+  if (recentTrades.length > 1) {
+    const oldestTrade = recentTrades[0];
+    const duplicateIds = recentTrades.slice(1).map(t => t.id);
+
+    console.log(`⚠️ Race condition detected - ${recentTrades.length} trades for ${ticker} in last 60s`);
+    console.log(`   Keeping oldest: ID ${oldestTrade.id} (created ${oldestTrade.openedAt.toISOString()})`);
+    console.log(`   Deleting duplicates: IDs ${duplicateIds.join(', ')}`);
+
+    // Delete the duplicate trades and their events
+    await prisma.tradeEvent.deleteMany({
+      where: { tradeId: { in: duplicateIds } },
+    });
+    await prisma.trade.deleteMany({
+      where: { id: { in: duplicateIds } },
+    });
+
+    logger.warn('webhook', 'Duplicate trades cleaned up (race condition)', {
+      ticker,
+      strategy,
+      keptTradeId: oldestTrade.id,
+      deletedTradeIds: duplicateIds,
+      totalDuplicates: duplicateIds.length,
+    });
+
+    // Return the oldest trade (the one we kept)
+    if (trade.id !== oldestTrade.id) {
+      return oldestTrade;
+    }
+  }
 
   console.log(`✅ Trade opened [ID: ${trade.id}] ${ticker} ${direction?.toUpperCase()} @ ${price} | Strategy: ${strategy || 'N/A'} | SL: ${stopLoss || 'N/A'} | TP: ${takeProfit || 'N/A'} | Qty: ${trade.quantity} (saved: ${quantity || 1})`);
   return trade;
