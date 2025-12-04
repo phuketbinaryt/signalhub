@@ -278,6 +278,29 @@ async function handleEntry(payload: WebhookPayload) {
 
   console.log(`📥 Entry Payload - Ticker: ${ticker}, Price: ${price}, Direction: ${direction}, Quantity: ${quantity}, Strategy: ${strategy || 'N/A'}, Type: ${typeof quantity}`);
 
+  // Deduplication: Check if a similar trade was created in the last 60 seconds
+  const recentCutoff = new Date(Date.now() - 60 * 1000); // 60 seconds ago
+  const existingTrade = await prisma.trade.findFirst({
+    where: {
+      ticker,
+      direction: direction || 'long',
+      strategy: strategy || null,
+      status: 'open',
+      openedAt: { gte: recentCutoff },
+    },
+    orderBy: { openedAt: 'desc' },
+  });
+
+  if (existingTrade) {
+    console.log(`⚠️ Duplicate entry detected - Trade ID ${existingTrade.id} already exists for ${ticker}/${strategy} (created ${Math.round((Date.now() - existingTrade.openedAt.getTime()) / 1000)}s ago)`);
+    logger.warn('webhook', 'Duplicate entry skipped', {
+      ticker,
+      strategy,
+      existingTradeId: existingTrade.id,
+    });
+    return existingTrade;
+  }
+
   // Create new trade
   const trade = await prisma.trade.create({
     data: {
