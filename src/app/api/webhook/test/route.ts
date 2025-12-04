@@ -64,8 +64,9 @@ function parseTextWebhook(content: string): ParsedPayload | null {
       }
     }
 
-    // Take Profit - regex supports optional emoji prefix
-    if (content.includes('Take Profit HIT')) {
+    // Take Profit - supports "Take Profit HIT" or "TP"
+    const isTakeProfit = content.includes('Take Profit HIT') || / TP[| ]/.test(content) || content.endsWith(' TP');
+    if (isTakeProfit) {
       const tickerMatch = content.match(/^(?:[^\s]+\s+)?([A-Z0-9!@#$%^&*_+\-=]+)\s+(?:BUY|SELL|LONG|SHORT)/i);
       const exitMatch = content.match(/Exit:\s*([\d.]+)/);
       const pnlMatch = content.match(/P&L:\s*\$?(-?[\d.]+)/);
@@ -81,8 +82,9 @@ function parseTextWebhook(content: string): ParsedPayload | null {
       }
     }
 
-    // Stop Loss - regex supports optional emoji prefix
-    if (content.includes('Stop Loss HIT')) {
+    // Stop Loss - supports "Stop Loss HIT" or "SL"
+    const isStopLoss = content.includes('Stop Loss HIT') || / SL[| ]/.test(content) || content.endsWith(' SL');
+    if (isStopLoss) {
       const tickerMatch = content.match(/^(?:[^\s]+\s+)?([A-Z0-9!@#$%^&*_+\-=]+)\s+(?:BUY|SELL|LONG|SHORT)/i);
       const exitMatch = content.match(/Exit:\s*([\d.]+)/);
       const pnlMatch = content.match(/P&L:\s*\$?(-?[\d.]+)/);
