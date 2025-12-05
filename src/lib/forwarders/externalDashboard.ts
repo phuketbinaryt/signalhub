@@ -13,13 +13,14 @@ export async function forwardToExternalDashboard(payload: any): Promise<void> {
   }
 
   try {
-    // Map internal action to buy/sell format expected by mrtrader.io
+    // Map internal action to format expected by mrtrader.io
     let action: string;
     if (payload.action === 'entry') {
       action = payload.direction === 'short' ? 'sell' : 'buy';
-    } else if (payload.action === 'take_profit' || payload.action === 'stop_loss') {
-      // Closing a position - opposite of the original direction
-      action = payload.direction === 'short' ? 'buy' : 'sell';
+    } else if (payload.action === 'take_profit') {
+      action = 'take_profit';
+    } else if (payload.action === 'stop_loss') {
+      action = 'stop_loss';
     } else {
       action = payload.action; // fallback
     }
