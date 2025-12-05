@@ -215,17 +215,24 @@ export async function POST(request: NextRequest) {
     let isDuplicate = false;
 
     switch (payload.action) {
-      case 'entry':
+      case 'entry': {
         const entryResult = await handleEntry(payload);
         trade = entryResult.trade;
         isDuplicate = entryResult.isDuplicate;
         break;
-      case 'take_profit':
-        trade = await handleTakeProfit(payload);
+      }
+      case 'take_profit': {
+        const tpResult = await handleTakeProfit(payload);
+        trade = tpResult.trade;
+        isDuplicate = tpResult.isDuplicate;
         break;
-      case 'stop_loss':
-        trade = await handleStopLoss(payload);
+      }
+      case 'stop_loss': {
+        const slResult = await handleStopLoss(payload);
+        trade = slResult.trade;
+        isDuplicate = slResult.isDuplicate;
         break;
+      }
       default:
         return NextResponse.json(
           { error: `Unknown action: ${payload.action}` },
@@ -371,7 +378,7 @@ async function handleEntry(payload: WebhookPayload): Promise<EntryResult> {
   return { trade, isDuplicate: false };
 }
 
-async function handleTakeProfit(payload: WebhookPayload) {
+async function handleTakeProfit(payload: WebhookPayload): Promise<EntryResult> {
   const { ticker, price, pnl: payloadPnl } = payload;
 
   // Find the most recent open trade for this ticker
@@ -386,8 +393,24 @@ async function handleTakeProfit(payload: WebhookPayload) {
   });
 
   if (!openTrade) {
+    // Check if there's a recently closed trade (within 60 seconds) - this is a duplicate
+    const recentClosed = await prisma.trade.findFirst({
+      where: {
+        ticker,
+        status: 'closed',
+        exitReason: 'take_profit',
+        closedAt: { gte: new Date(Date.now() - 60 * 1000) },
+      },
+      orderBy: { closedAt: 'desc' },
+    });
+
+    if (recentClosed) {
+      console.log(`⚠️ Duplicate take_profit for ${ticker} - trade ${recentClosed.id} already closed ${Math.round((Date.now() - recentClosed.closedAt!.getTime()) / 1000)}s ago`);
+      return { trade: recentClosed, isDuplicate: true };
+    }
+
     console.warn(`⚠️ No open trade found for ticker ${ticker} - cannot process take profit`);
-    return null;
+    return { trade: null, isDuplicate: true }; // Skip forwarding if no trade found
   }
 
   console.log(`🔍 Found open trade [ID: ${openTrade.id}] for ${ticker} - Quantity from DB: ${openTrade.quantity}, Type: ${typeof openTrade.quantity}`);
@@ -422,10 +445,10 @@ async function handleTakeProfit(payload: WebhookPayload) {
   });
 
   console.log(`🎯 Take Profit HIT [ID: ${trade.id}] ${ticker} | Entry: ${openTrade.entryPrice} → Exit: ${price} | P&L: $${pnl.toFixed(2)} (${pnlPercent.toFixed(2)}%)`);
-  return trade;
+  return { trade, isDuplicate: false };
 }
 
-async function handleStopLoss(payload: WebhookPayload) {
+async function handleStopLoss(payload: WebhookPayload): Promise<EntryResult> {
   const { ticker, price, pnl: payloadPnl } = payload;
 
   // Find the most recent open trade for this ticker
@@ -440,8 +463,24 @@ async function handleStopLoss(payload: WebhookPayload) {
   });
 
   if (!openTrade) {
+    // Check if there's a recently closed trade (within 60 seconds) - this is a duplicate
+    const recentClosed = await prisma.trade.findFirst({
+      where: {
+        ticker,
+        status: 'closed',
+        exitReason: 'stop_loss',
+        closedAt: { gte: new Date(Date.now() - 60 * 1000) },
+      },
+      orderBy: { closedAt: 'desc' },
+    });
+
+    if (recentClosed) {
+      console.log(`⚠️ Duplicate stop_loss for ${ticker} - trade ${recentClosed.id} already closed ${Math.round((Date.now() - recentClosed.closedAt!.getTime()) / 1000)}s ago`);
+      return { trade: recentClosed, isDuplicate: true };
+    }
+
     console.warn(`⚠️ No open trade found for ticker ${ticker} - cannot process stop loss`);
-    return null;
+    return { trade: null, isDuplicate: true }; // Skip forwarding if no trade found
   }
 
   console.log(`🔍 Found open trade [ID: ${openTrade.id}] for ${ticker} - Quantity from DB: ${openTrade.quantity}, Type: ${typeof openTrade.quantity}`);
@@ -476,7 +515,7 @@ async function handleStopLoss(payload: WebhookPayload) {
   });
 
   console.log(`🛑 Stop Loss HIT [ID: ${trade.id}] ${ticker} | Entry: ${openTrade.entryPrice} → Exit: ${price} | P&L: $${pnl.toFixed(2)} (${pnlPercent.toFixed(2)}%)`);
-  return trade;
+  return { trade, isDuplicate: false };
 }
 
 function calculatePnL(trade: any, exitPrice: number): number {
