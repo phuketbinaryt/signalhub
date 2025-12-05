@@ -212,9 +212,13 @@ export async function POST(request: NextRequest) {
 
     // Process based on action type
     let trade;
+    let isDuplicate = false;
+
     switch (payload.action) {
       case 'entry':
-        trade = await handleEntry(payload);
+        const entryResult = await handleEntry(payload);
+        trade = entryResult.trade;
+        isDuplicate = entryResult.isDuplicate;
         break;
       case 'take_profit':
         trade = await handleTakeProfit(payload);
@@ -227,6 +231,17 @@ export async function POST(request: NextRequest) {
           { error: `Unknown action: ${payload.action}` },
           { status: 400 }
         );
+    }
+
+    // Skip forwarding for duplicate signals
+    if (isDuplicate) {
+      console.log(`⏭️ Skipping forwarding for duplicate ${payload.action} signal on ${payload.ticker}`);
+      return NextResponse.json({
+        success: true,
+        message: `Duplicate ${payload.action} signal - skipped forwarding`,
+        tradeId: trade?.id,
+        isDuplicate: true,
+      });
     }
 
     // Forward to all configured destinations (non-blocking)
@@ -275,7 +290,12 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function handleEntry(payload: WebhookPayload) {
+interface EntryResult {
+  trade: any;
+  isDuplicate: boolean;
+}
+
+async function handleEntry(payload: WebhookPayload): Promise<EntryResult> {
   const { ticker, price, direction, takeProfit, stopLoss, quantity, strategy } = payload;
 
   console.log(`📥 Entry Payload - Ticker: ${ticker}, Price: ${price}, Direction: ${direction}, Quantity: ${quantity}, Strategy: ${strategy || 'N/A'}, Type: ${typeof quantity}`);
@@ -341,14 +361,14 @@ async function handleEntry(payload: WebhookPayload) {
       totalDuplicates: duplicateIds.length,
     });
 
-    // Return the oldest trade (the one we kept)
+    // This was a duplicate - the trade we created was deleted
     if (trade.id !== oldestTrade.id) {
-      return oldestTrade;
+      return { trade: oldestTrade, isDuplicate: true };
     }
   }
 
   console.log(`✅ Trade opened [ID: ${trade.id}] ${ticker} ${direction?.toUpperCase()} @ ${price} | Strategy: ${strategy || 'N/A'} | SL: ${stopLoss || 'N/A'} | TP: ${takeProfit || 'N/A'} | Qty: ${trade.quantity} (saved: ${quantity || 1})`);
-  return trade;
+  return { trade, isDuplicate: false };
 }
 
 async function handleTakeProfit(payload: WebhookPayload) {
