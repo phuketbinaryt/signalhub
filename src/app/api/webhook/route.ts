@@ -332,23 +332,25 @@ async function handleEntry(payload: WebhookPayload): Promise<EntryResult> {
     },
   });
 
-  // Now check if there are duplicate trades (same ticker, created within 60 seconds)
+  // Now check if there are duplicate trades (same ticker + strategy, created within 60 seconds)
+  // Different strategies can legitimately trigger on the same ticker at the same time
   const recentCutoff = new Date(Date.now() - 60 * 1000);
   const recentTrades = await prisma.trade.findMany({
     where: {
       ticker,
+      strategy: strategy || null, // Match exact strategy (including null)
       status: 'open',
       openedAt: { gte: recentCutoff },
     },
     orderBy: { openedAt: 'asc' }, // Oldest first
   });
 
-  // If there are multiple recent trades for same ticker, keep only the oldest
+  // If there are multiple recent trades for same ticker+strategy, keep only the oldest
   if (recentTrades.length > 1) {
     const oldestTrade = recentTrades[0];
     const duplicateIds = recentTrades.slice(1).map(t => t.id);
 
-    console.log(`⚠️ Race condition detected - ${recentTrades.length} trades for ${ticker} in last 60s`);
+    console.log(`⚠️ Race condition detected - ${recentTrades.length} trades for ${ticker}/${strategy || 'no-strategy'} in last 60s`);
     console.log(`   Keeping oldest: ID ${oldestTrade.id} (created ${oldestTrade.openedAt.toISOString()})`);
     console.log(`   Deleting duplicates: IDs ${duplicateIds.join(', ')}`);
 
