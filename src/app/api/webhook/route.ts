@@ -73,37 +73,37 @@ function parseTextWebhook(content: string): Partial<WebhookPayload> | null {
       }
     }
 
-    // Take Profit - supports "Take Profit HIT" or "TP"
-    const isTakeProfit = content.includes('Take Profit HIT') || / TP[| ]/.test(content) || content.endsWith(' TP');
+    // Take Profit - supports "Take Profit HIT", "TP", "TP1 HIT", "TP2 HIT", etc.
+    const isTakeProfit = content.includes('Take Profit HIT') || /\bTP\d*\s*HIT\b/i.test(content) || / TP[| ]/.test(content) || content.endsWith(' TP');
     if (isTakeProfit) {
       const tickerMatch = content.match(/^(?:[^\s]+\s+)?([A-Z0-9!@#$%^&*_+\-=]+)\s+(?:BUY|SELL|LONG|SHORT)/i);
-      const exitMatch = content.match(/Exit:\s*([\d.]+)/);
-      const pnlMatch = content.match(/P&L:\s*\$?(-?[\d.]+)/);
+      const exitMatch = content.match(/Exit:\s*([\d,.]+)/);
+      const pnlMatch = content.match(/P&L:\s*\$?(-?[\d,.]+)/);
 
       if (tickerMatch && exitMatch) {
         return {
           action: 'take_profit',
           ticker: tickerMatch[1],
-          price: parseFloat(exitMatch[1]),
-          pnl: pnlMatch ? parseFloat(pnlMatch[1]) : undefined,
+          price: parseFloat(exitMatch[1].replace(/,/g, '')),
+          pnl: pnlMatch ? parseFloat(pnlMatch[1].replace(/,/g, '')) : undefined,
           strategy,
         };
       }
     }
 
-    // Stop Loss - supports "Stop Loss HIT" or "SL"
-    const isStopLoss = content.includes('Stop Loss HIT') || / SL[| ]/.test(content) || content.endsWith(' SL');
+    // Stop Loss - supports "Stop Loss HIT", "SL", "SL1 HIT", "SL2 HIT", etc.
+    const isStopLoss = content.includes('Stop Loss HIT') || /\bSL\d*\s*HIT\b/i.test(content) || / SL[| ]/.test(content) || content.endsWith(' SL');
     if (isStopLoss) {
       const tickerMatch = content.match(/^(?:[^\s]+\s+)?([A-Z0-9!@#$%^&*_+\-=]+)\s+(?:BUY|SELL|LONG|SHORT)/i);
-      const exitMatch = content.match(/Exit:\s*([\d.]+)/);
-      const pnlMatch = content.match(/P&L:\s*\$?(-?[\d.]+)/);
+      const exitMatch = content.match(/Exit:\s*([\d,.]+)/);
+      const pnlMatch = content.match(/P&L:\s*\$?(-?[\d,.]+)/);
 
       if (tickerMatch && exitMatch) {
         return {
           action: 'stop_loss',
           ticker: tickerMatch[1],
-          price: parseFloat(exitMatch[1]),
-          pnl: pnlMatch ? parseFloat(pnlMatch[1]) : undefined,
+          price: parseFloat(exitMatch[1].replace(/,/g, '')),
+          pnl: pnlMatch ? parseFloat(pnlMatch[1].replace(/,/g, '')) : undefined,
           strategy,
         };
       }
