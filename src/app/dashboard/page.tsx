@@ -8,6 +8,7 @@ import { SoundSettings } from '@/components/SoundSettings';
 import { PushNotificationButton } from '@/components/PushNotificationButton';
 import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
 import { OpenTradesTable } from '@/components/OpenTradesTable';
+import { StrategyVisibilityFilter, loadVisibleStrategies, saveVisibleStrategies } from '@/components/StrategyVisibilityFilter';
 import { useSoundNotifications } from '@/hooks/useSoundNotifications';
 import { TrendingUp, TrendingDown, Settings, BarChart3, Zap, Target, DollarSign } from 'lucide-react';
 import Image from 'next/image';
@@ -62,6 +63,9 @@ function Dashboard() {
   const [currentPage, setCurrentPage] = useState(1);
   const [sortBy, setSortBy] = useState<'time' | 'ticker'>('time');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [allStrategies, setAllStrategies] = useState<string[]>([]);
+  const [visibleStrategies, setVisibleStrategies] = useState<string[]>([]);
+  const [visibilityInitialized, setVisibilityInitialized] = useState(false);
   const TRADES_PER_PAGE = 25;
 
   // Sound notifications
@@ -74,6 +78,38 @@ function Dashboard() {
       setSelectedStrategy(strategyParam);
     }
   }, [searchParams]);
+
+  // Fetch all strategies for visibility filter
+  useEffect(() => {
+    const fetchAllStrategies = async () => {
+      try {
+        const response = await fetch('/api/strategies');
+        if (response.ok) {
+          const data = await response.json();
+          const strategyNames = data.strategies.map((s: any) => s.strategy).filter(Boolean);
+          setAllStrategies(strategyNames);
+
+          // Initialize visible strategies from localStorage or default to all
+          const saved = loadVisibleStrategies();
+          if (saved !== null) {
+            // Filter out any strategies that no longer exist
+            const validSaved = saved.filter((s: string) => strategyNames.includes(s));
+            setVisibleStrategies(validSaved);
+          } else {
+            // Default to all strategies visible
+            setVisibleStrategies(strategyNames);
+            saveVisibleStrategies(strategyNames);
+          }
+          setVisibilityInitialized(true);
+        }
+      } catch (error) {
+        console.error('Error fetching strategies for visibility:', error);
+        setVisibilityInitialized(true);
+      }
+    };
+
+    fetchAllStrategies();
+  }, []);
 
   useEffect(() => {
     fetchTrades();
@@ -247,7 +283,7 @@ function Dashboard() {
   const byTicker = tradeData?.stats.byTicker || [];
 
   // Sort trades based on selected sort option
-  const trades = (tradeData?.trades || []).sort((a: any, b: any) => {
+  const allTrades = (tradeData?.trades || []).sort((a: any, b: any) => {
     if (sortBy === 'time') {
       const timeA = new Date(a.openedAt).getTime();
       const timeB = new Date(b.openedAt).getTime();
@@ -258,6 +294,11 @@ function Dashboard() {
       ? b.ticker.localeCompare(a.ticker)
       : a.ticker.localeCompare(b.ticker);
   });
+
+  // Filter trades based on visibility settings (only when not filtering by specific strategy)
+  const trades = selectedStrategy === 'all' && visibilityInitialized
+    ? allTrades.filter((t: any) => !t.strategy || visibleStrategies.includes(t.strategy))
+    : allTrades;
 
   const handleSort = (column: 'time' | 'ticker') => {
     if (sortBy === column) {
@@ -532,8 +573,15 @@ function Dashboard() {
 
             {/* Recent Trades Table */}
             <div className="bg-[#111111] border border-[#222] rounded-xl overflow-hidden mb-8">
-              <div className="px-6 py-4 border-b border-[#222]">
+              <div className="px-6 py-4 border-b border-[#222] flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-white">Recent Trades</h2>
+                {selectedStrategy === 'all' && (
+                  <StrategyVisibilityFilter
+                    strategies={allStrategies}
+                    visibleStrategies={visibleStrategies}
+                    onVisibilityChange={setVisibleStrategies}
+                  />
+                )}
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full">
