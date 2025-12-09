@@ -381,12 +381,13 @@ async function handleEntry(payload: WebhookPayload): Promise<EntryResult> {
 }
 
 async function handleTakeProfit(payload: WebhookPayload): Promise<EntryResult> {
-  const { ticker, price, pnl: payloadPnl } = payload;
+  const { ticker, price, pnl: payloadPnl, strategy } = payload;
 
-  // Find the most recent open trade for this ticker
-  const openTrade = await prisma.trade.findFirst({
+  // Find open trade - first try to match by ticker AND strategy
+  let openTrade = await prisma.trade.findFirst({
     where: {
       ticker,
+      strategy: strategy || undefined, // Only filter by strategy if provided
       status: 'open',
     },
     orderBy: {
@@ -394,11 +395,26 @@ async function handleTakeProfit(payload: WebhookPayload): Promise<EntryResult> {
     },
   });
 
+  // If no match with strategy and strategy was provided, try without strategy filter as fallback
+  if (!openTrade && strategy) {
+    console.log(`🔍 No open trade found for ${ticker}/${strategy}, trying without strategy filter...`);
+    openTrade = await prisma.trade.findFirst({
+      where: {
+        ticker,
+        status: 'open',
+      },
+      orderBy: {
+        openedAt: 'desc',
+      },
+    });
+  }
+
   if (!openTrade) {
     // Check if there's a recently closed trade (within 60 seconds) - this is a duplicate
     const recentClosed = await prisma.trade.findFirst({
       where: {
         ticker,
+        strategy: strategy || undefined,
         status: 'closed',
         exitReason: 'take_profit',
         closedAt: { gte: new Date(Date.now() - 60 * 1000) },
@@ -407,15 +423,15 @@ async function handleTakeProfit(payload: WebhookPayload): Promise<EntryResult> {
     });
 
     if (recentClosed) {
-      console.log(`⚠️ Duplicate take_profit for ${ticker} - trade ${recentClosed.id} already closed ${Math.round((Date.now() - recentClosed.closedAt!.getTime()) / 1000)}s ago`);
+      console.log(`⚠️ Duplicate take_profit for ${ticker}/${strategy || 'no-strategy'} - trade ${recentClosed.id} already closed ${Math.round((Date.now() - recentClosed.closedAt!.getTime()) / 1000)}s ago`);
       return { trade: recentClosed, isDuplicate: true };
     }
 
-    console.warn(`⚠️ No open trade found for ticker ${ticker} - cannot process take profit`);
+    console.warn(`⚠️ No open trade found for ticker ${ticker}/${strategy || 'no-strategy'} - cannot process take profit`);
     return { trade: null, isDuplicate: true }; // Skip forwarding if no trade found
   }
 
-  console.log(`🔍 Found open trade [ID: ${openTrade.id}] for ${ticker} - Quantity from DB: ${openTrade.quantity}, Type: ${typeof openTrade.quantity}`);
+  console.log(`🔍 Found open trade [ID: ${openTrade.id}] for ${ticker}/${openTrade.strategy || 'no-strategy'} - Quantity: ${openTrade.quantity}`);
 
   // Use P&L from TradingView if provided, otherwise calculate it
   const pnl = payloadPnl !== undefined ? payloadPnl : calculatePnL(openTrade, price);
@@ -451,12 +467,13 @@ async function handleTakeProfit(payload: WebhookPayload): Promise<EntryResult> {
 }
 
 async function handleStopLoss(payload: WebhookPayload): Promise<EntryResult> {
-  const { ticker, price, pnl: payloadPnl } = payload;
+  const { ticker, price, pnl: payloadPnl, strategy } = payload;
 
-  // Find the most recent open trade for this ticker
-  const openTrade = await prisma.trade.findFirst({
+  // Find open trade - first try to match by ticker AND strategy
+  let openTrade = await prisma.trade.findFirst({
     where: {
       ticker,
+      strategy: strategy || undefined, // Only filter by strategy if provided
       status: 'open',
     },
     orderBy: {
@@ -464,11 +481,26 @@ async function handleStopLoss(payload: WebhookPayload): Promise<EntryResult> {
     },
   });
 
+  // If no match with strategy and strategy was provided, try without strategy filter as fallback
+  if (!openTrade && strategy) {
+    console.log(`🔍 No open trade found for ${ticker}/${strategy}, trying without strategy filter...`);
+    openTrade = await prisma.trade.findFirst({
+      where: {
+        ticker,
+        status: 'open',
+      },
+      orderBy: {
+        openedAt: 'desc',
+      },
+    });
+  }
+
   if (!openTrade) {
     // Check if there's a recently closed trade (within 60 seconds) - this is a duplicate
     const recentClosed = await prisma.trade.findFirst({
       where: {
         ticker,
+        strategy: strategy || undefined,
         status: 'closed',
         exitReason: 'stop_loss',
         closedAt: { gte: new Date(Date.now() - 60 * 1000) },
@@ -477,15 +509,15 @@ async function handleStopLoss(payload: WebhookPayload): Promise<EntryResult> {
     });
 
     if (recentClosed) {
-      console.log(`⚠️ Duplicate stop_loss for ${ticker} - trade ${recentClosed.id} already closed ${Math.round((Date.now() - recentClosed.closedAt!.getTime()) / 1000)}s ago`);
+      console.log(`⚠️ Duplicate stop_loss for ${ticker}/${strategy || 'no-strategy'} - trade ${recentClosed.id} already closed ${Math.round((Date.now() - recentClosed.closedAt!.getTime()) / 1000)}s ago`);
       return { trade: recentClosed, isDuplicate: true };
     }
 
-    console.warn(`⚠️ No open trade found for ticker ${ticker} - cannot process stop loss`);
+    console.warn(`⚠️ No open trade found for ticker ${ticker}/${strategy || 'no-strategy'} - cannot process stop loss`);
     return { trade: null, isDuplicate: true }; // Skip forwarding if no trade found
   }
 
-  console.log(`🔍 Found open trade [ID: ${openTrade.id}] for ${ticker} - Quantity from DB: ${openTrade.quantity}, Type: ${typeof openTrade.quantity}`);
+  console.log(`🔍 Found open trade [ID: ${openTrade.id}] for ${ticker}/${openTrade.strategy || 'no-strategy'} - Quantity: ${openTrade.quantity}`);
 
   // Use P&L from TradingView if provided, otherwise calculate it
   const pnl = payloadPnl !== undefined ? payloadPnl : calculatePnL(openTrade, price);
