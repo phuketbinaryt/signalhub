@@ -635,6 +635,7 @@ function Dashboard() {
                             trade={trade}
                             onDelete={() => handleDelete(trade.id)}
                             onComplete={handleComplete}
+                            onEdit={async () => { await fetchTrades(); }}
                           />
                         </td>
                       </tr>

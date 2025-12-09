@@ -1,18 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-// PATCH - Complete/Close a trade manually
+// PATCH - Edit a trade (flexible update)
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const tradeId = parseInt(params.id);
+    const { id } = await params;
+    const tradeId = parseInt(id);
 
     if (isNaN(tradeId)) {
       return NextResponse.json(
@@ -22,15 +21,6 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { exitPrice, pnl, exitReason } = body;
-
-    // Validate required fields
-    if (exitPrice === undefined || pnl === undefined) {
-      return NextResponse.json(
-        { error: 'Exit price and P&L are required' },
-        { status: 400 }
-      );
-    }
 
     // Check if trade exists
     const trade = await prisma.trade.findUnique({
@@ -44,32 +34,77 @@ export async function PATCH(
       );
     }
 
-    // Calculate P&L percentage
-    const pnlPercent = ((exitPrice - trade.entryPrice) / trade.entryPrice) * 100;
+    // Build update data - only include fields that are provided
+    const updateData: any = {};
+
+    if (body.exitPrice !== undefined) {
+      updateData.exitPrice = body.exitPrice === null ? null : parseFloat(body.exitPrice);
+    }
+
+    if (body.exitReason !== undefined) {
+      updateData.exitReason = body.exitReason;
+    }
+
+    if (body.pnl !== undefined) {
+      updateData.pnl = body.pnl === null ? null : parseFloat(body.pnl);
+    }
+
+    if (body.pnlPercent !== undefined) {
+      updateData.pnlPercent = body.pnlPercent === null ? null : parseFloat(body.pnlPercent);
+    }
+
+    if (body.status !== undefined) {
+      updateData.status = body.status;
+      // If closing a trade, set closedAt if not already set
+      if (body.status === 'closed' && !trade.closedAt) {
+        updateData.closedAt = new Date();
+      }
+      // If reopening a trade, clear exit data
+      if (body.status === 'open') {
+        updateData.closedAt = null;
+        updateData.exitPrice = null;
+        updateData.exitReason = null;
+        updateData.pnl = null;
+        updateData.pnlPercent = null;
+      }
+    }
+
+    if (body.entryPrice !== undefined) {
+      updateData.entryPrice = parseFloat(body.entryPrice);
+    }
+
+    if (body.takeProfit !== undefined) {
+      updateData.takeProfit = body.takeProfit === null ? null : parseFloat(body.takeProfit);
+    }
+
+    if (body.stopLoss !== undefined) {
+      updateData.stopLoss = body.stopLoss === null ? null : parseFloat(body.stopLoss);
+    }
+
+    if (body.quantity !== undefined) {
+      updateData.quantity = parseFloat(body.quantity);
+    }
+
+    if (body.direction !== undefined) {
+      updateData.direction = body.direction;
+    }
 
     // Update the trade
     const updatedTrade = await prisma.trade.update({
       where: { id: tradeId },
-      data: {
-        status: 'closed',
-        exitPrice: parseFloat(exitPrice),
-        pnl: parseFloat(pnl),
-        pnlPercent,
-        exitReason: exitReason || 'manual',
-        closedAt: new Date(),
-      },
+      data: updateData,
     });
 
-    console.log(`✅ Trade manually completed [ID: ${tradeId}] | Exit: ${exitPrice} | P&L: $${pnl} | Reason: ${exitReason || 'manual'}`);
+    console.log(`✏️ Trade edited [ID: ${tradeId}]:`, updateData);
 
     return NextResponse.json({
       success: true,
       trade: updatedTrade,
     });
   } catch (error) {
-    console.error('Error completing trade:', error);
+    console.error('Error updating trade:', error);
     return NextResponse.json(
-      { error: 'Failed to complete trade' },
+      { error: 'Failed to update trade' },
       { status: 500 }
     );
   }
@@ -77,10 +112,11 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const tradeId = parseInt(params.id);
+    const { id } = await params;
+    const tradeId = parseInt(id);
 
     if (isNaN(tradeId)) {
       return NextResponse.json(
