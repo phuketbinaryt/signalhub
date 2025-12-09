@@ -383,11 +383,12 @@ async function handleEntry(payload: WebhookPayload): Promise<EntryResult> {
 async function handleTakeProfit(payload: WebhookPayload): Promise<EntryResult> {
   const { ticker, price, pnl: payloadPnl, strategy } = payload;
 
-  // Find open trade - first try to match by ticker AND strategy
-  let openTrade = await prisma.trade.findFirst({
+  console.log(`🎯 Processing take_profit - Ticker: ${ticker}, Strategy from signal: ${strategy || 'NONE'}`);
+
+  // Count all open trades for this ticker to understand the situation
+  const allOpenTrades = await prisma.trade.findMany({
     where: {
       ticker,
-      strategy: strategy || undefined, // Only filter by strategy if provided
       status: 'open',
     },
     orderBy: {
@@ -395,18 +396,29 @@ async function handleTakeProfit(payload: WebhookPayload): Promise<EntryResult> {
     },
   });
 
-  // If no match with strategy and strategy was provided, try without strategy filter as fallback
-  if (!openTrade && strategy) {
-    console.log(`🔍 No open trade found for ${ticker}/${strategy}, trying without strategy filter...`);
-    openTrade = await prisma.trade.findFirst({
-      where: {
-        ticker,
-        status: 'open',
-      },
-      orderBy: {
-        openedAt: 'desc',
-      },
-    });
+  console.log(`📊 Found ${allOpenTrades.length} open trade(s) for ${ticker}:`,
+    allOpenTrades.map(t => `ID:${t.id}/${t.strategy || 'no-strategy'}`).join(', '));
+
+  let openTrade = null;
+
+  if (strategy) {
+    // Signal has a strategy - ONLY match by ticker + strategy (no fallback!)
+    openTrade = allOpenTrades.find(t => t.strategy === strategy);
+
+    if (!openTrade) {
+      console.warn(`⚠️ No open trade found for ${ticker}/${strategy} - strategy mismatch! Open strategies: ${allOpenTrades.map(t => t.strategy || 'null').join(', ')}`);
+      // DO NOT fall back to other strategies - this would close the wrong trade
+      return { trade: null, isDuplicate: true };
+    }
+  } else {
+    // Signal has NO strategy - only close if there's exactly ONE open trade for this ticker
+    if (allOpenTrades.length === 1) {
+      openTrade = allOpenTrades[0];
+      console.log(`📌 Signal has no strategy, but only 1 open trade exists - using it`);
+    } else if (allOpenTrades.length > 1) {
+      console.warn(`⚠️ Signal has no strategy but ${allOpenTrades.length} open trades exist for ${ticker} - cannot determine which to close!`);
+      return { trade: null, isDuplicate: true };
+    }
   }
 
   if (!openTrade) {
@@ -428,10 +440,10 @@ async function handleTakeProfit(payload: WebhookPayload): Promise<EntryResult> {
     }
 
     console.warn(`⚠️ No open trade found for ticker ${ticker}/${strategy || 'no-strategy'} - cannot process take profit`);
-    return { trade: null, isDuplicate: true }; // Skip forwarding if no trade found
+    return { trade: null, isDuplicate: true };
   }
 
-  console.log(`🔍 Found open trade [ID: ${openTrade.id}] for ${ticker}/${openTrade.strategy || 'no-strategy'} - Quantity: ${openTrade.quantity}`);
+  console.log(`✅ Matched trade [ID: ${openTrade.id}] for ${ticker}/${openTrade.strategy || 'no-strategy'} - Quantity: ${openTrade.quantity}`);
 
   // Use P&L from TradingView if provided, otherwise calculate it
   const pnl = payloadPnl !== undefined ? payloadPnl : calculatePnL(openTrade, price);
@@ -469,11 +481,12 @@ async function handleTakeProfit(payload: WebhookPayload): Promise<EntryResult> {
 async function handleStopLoss(payload: WebhookPayload): Promise<EntryResult> {
   const { ticker, price, pnl: payloadPnl, strategy } = payload;
 
-  // Find open trade - first try to match by ticker AND strategy
-  let openTrade = await prisma.trade.findFirst({
+  console.log(`🛑 Processing stop_loss - Ticker: ${ticker}, Strategy from signal: ${strategy || 'NONE'}`);
+
+  // Count all open trades for this ticker to understand the situation
+  const allOpenTrades = await prisma.trade.findMany({
     where: {
       ticker,
-      strategy: strategy || undefined, // Only filter by strategy if provided
       status: 'open',
     },
     orderBy: {
@@ -481,18 +494,29 @@ async function handleStopLoss(payload: WebhookPayload): Promise<EntryResult> {
     },
   });
 
-  // If no match with strategy and strategy was provided, try without strategy filter as fallback
-  if (!openTrade && strategy) {
-    console.log(`🔍 No open trade found for ${ticker}/${strategy}, trying without strategy filter...`);
-    openTrade = await prisma.trade.findFirst({
-      where: {
-        ticker,
-        status: 'open',
-      },
-      orderBy: {
-        openedAt: 'desc',
-      },
-    });
+  console.log(`📊 Found ${allOpenTrades.length} open trade(s) for ${ticker}:`,
+    allOpenTrades.map(t => `ID:${t.id}/${t.strategy || 'no-strategy'}`).join(', '));
+
+  let openTrade = null;
+
+  if (strategy) {
+    // Signal has a strategy - ONLY match by ticker + strategy (no fallback!)
+    openTrade = allOpenTrades.find(t => t.strategy === strategy);
+
+    if (!openTrade) {
+      console.warn(`⚠️ No open trade found for ${ticker}/${strategy} - strategy mismatch! Open strategies: ${allOpenTrades.map(t => t.strategy || 'null').join(', ')}`);
+      // DO NOT fall back to other strategies - this would close the wrong trade
+      return { trade: null, isDuplicate: true };
+    }
+  } else {
+    // Signal has NO strategy - only close if there's exactly ONE open trade for this ticker
+    if (allOpenTrades.length === 1) {
+      openTrade = allOpenTrades[0];
+      console.log(`📌 Signal has no strategy, but only 1 open trade exists - using it`);
+    } else if (allOpenTrades.length > 1) {
+      console.warn(`⚠️ Signal has no strategy but ${allOpenTrades.length} open trades exist for ${ticker} - cannot determine which to close!`);
+      return { trade: null, isDuplicate: true };
+    }
   }
 
   if (!openTrade) {
@@ -514,10 +538,10 @@ async function handleStopLoss(payload: WebhookPayload): Promise<EntryResult> {
     }
 
     console.warn(`⚠️ No open trade found for ticker ${ticker}/${strategy || 'no-strategy'} - cannot process stop loss`);
-    return { trade: null, isDuplicate: true }; // Skip forwarding if no trade found
+    return { trade: null, isDuplicate: true };
   }
 
-  console.log(`🔍 Found open trade [ID: ${openTrade.id}] for ${ticker}/${openTrade.strategy || 'no-strategy'} - Quantity: ${openTrade.quantity}`);
+  console.log(`✅ Matched trade [ID: ${openTrade.id}] for ${ticker}/${openTrade.strategy || 'no-strategy'} - Quantity: ${openTrade.quantity}`);
 
   // Use P&L from TradingView if provided, otherwise calculate it
   const pnl = payloadPnl !== undefined ? payloadPnl : calculatePnL(openTrade, price);
