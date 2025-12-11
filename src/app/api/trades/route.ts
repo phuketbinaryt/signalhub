@@ -223,6 +223,7 @@ async function calculateStats(where: any) {
         openTrades: 0,
         closedTrades: 0,
         totalPnl: 0,
+        totalContracts: 0,
         wins: 0,
         losses: 0,
         tickers: new Set<string>(),
@@ -231,6 +232,7 @@ async function calculateStats(where: any) {
 
     const stat = strategyStats[strategyKey];
     stat.totalTrades++;
+    stat.totalContracts += trade.quantity || 1;
     stat.tickers.add(trade.ticker);
 
     if (trade.status === 'open') {

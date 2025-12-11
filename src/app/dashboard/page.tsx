@@ -837,9 +837,9 @@ function Dashboard() {
                     <tr className="border-b border-[#222]">
                       <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Strategy</th>
                       <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Tickers</th>
-                      <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Total</th>
+                      <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Trades</th>
+                      <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Contracts</th>
                       <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Open</th>
-                      <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Closed</th>
                       <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">W/L</th>
                       <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Win Rate</th>
                       <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">P&L</th>
@@ -877,8 +877,8 @@ function Dashboard() {
                           </div>
                         </td>
                         <td className="px-6 py-4 text-white">{strat.totalTrades}</td>
+                        <td className="px-6 py-4 text-cyan-400">{strat.totalContracts}</td>
                         <td className="px-6 py-4 text-gray-400">{strat.openTrades}</td>
-                        <td className="px-6 py-4 text-gray-400">{strat.closedTrades}</td>
                         <td className="px-6 py-4">
                           <span className="text-emerald-400">{strat.wins}</span>
                           <span className="text-gray-600">/</span>
