@@ -35,6 +35,7 @@ interface TradeData {
       avgLoss: number;
     };
     byTicker: any[];
+    byStrategy: any[];
   };
 }
 
@@ -281,6 +282,7 @@ function Dashboard() {
 
   const stats = tradeData?.stats.overall;
   const byTicker = tradeData?.stats.byTicker || [];
+  const byStrategy = tradeData?.stats.byStrategy || [];
 
   // Sort trades based on selected sort option
   const allTrades = (tradeData?.trades || []).sort((a: any, b: any) => {
@@ -816,6 +818,99 @@ function Dashboard() {
                         </td>
                         <td className={`px-6 py-4 font-medium ${ticker.totalPnl < 0 ? 'text-red-400' : 'text-emerald-400'}`}>
                           ${ticker.totalPnl.toFixed(2)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* By Strategy Table */}
+            <div className="bg-[#111111] border border-[#222] rounded-xl overflow-hidden mb-8">
+              <div className="px-6 py-4 border-b border-[#222]">
+                <h2 className="text-lg font-semibold text-white">By Strategy</h2>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-[#222]">
+                      <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Strategy</th>
+                      <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Tickers</th>
+                      <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Total</th>
+                      <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Open</th>
+                      <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Closed</th>
+                      <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">W/L</th>
+                      <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Win Rate</th>
+                      <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">P&L</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {byStrategy.map((strat: any, index: number) => (
+                      <tr
+                        key={index}
+                        className="border-b border-[#1a1a1a] hover:bg-[#1a1a1a] transition-colors cursor-pointer"
+                        onClick={() => {
+                          if (strat.strategy !== '(No Strategy)') {
+                            setSelectedStrategy(strat.strategy);
+                            setCurrentPage(1);
+                          }
+                        }}
+                      >
+                        <td className="px-6 py-4">
+                          <span className="text-white font-medium">{strat.strategy}</span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex flex-wrap gap-1">
+                            {strat.tickers && strat.tickers.length > 0 ? (
+                              strat.tickers.map((ticker: string) => (
+                                <span
+                                  key={ticker}
+                                  className="inline-flex px-1.5 py-0.5 rounded text-xs bg-[#1a1a1a] text-gray-400 border border-[#333] whitespace-nowrap"
+                                >
+                                  {ticker}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="text-gray-600 text-sm">-</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-white">{strat.totalTrades}</td>
+                        <td className="px-6 py-4 text-gray-400">{strat.openTrades}</td>
+                        <td className="px-6 py-4 text-gray-400">{strat.closedTrades}</td>
+                        <td className="px-6 py-4">
+                          <span className="text-emerald-400">{strat.wins}</span>
+                          <span className="text-gray-600">/</span>
+                          <span className="text-red-400">{strat.losses}</span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <div className="w-16 h-1.5 bg-[#222] rounded-full overflow-hidden">
+                              <div
+                                className={`h-full rounded-full ${
+                                  strat.winRate >= 70
+                                    ? 'bg-emerald-400'
+                                    : strat.winRate >= 50
+                                    ? 'bg-orange-400'
+                                    : 'bg-red-400'
+                                }`}
+                                style={{ width: `${Math.min(strat.winRate, 100)}%` }}
+                              />
+                            </div>
+                            <span className={`text-sm ${
+                              strat.winRate >= 70
+                                ? 'text-emerald-400'
+                                : strat.winRate >= 50
+                                ? 'text-orange-400'
+                                : 'text-red-400'
+                            }`}>
+                              {strat.winRate.toFixed(1)}%
+                            </span>
+                          </div>
+                        </td>
+                        <td className={`px-6 py-4 font-medium ${strat.totalPnl < 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+                          ${strat.totalPnl.toFixed(2)}
                         </td>
                       </tr>
                     ))}

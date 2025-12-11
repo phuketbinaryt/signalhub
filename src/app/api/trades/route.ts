@@ -212,6 +212,48 @@ async function calculateStats(where: any) {
     }))
     .sort((a: any, b: any) => b.totalTrades - a.totalTrades);
 
+  // Group by strategy
+  const strategyStats: any = {};
+  allTrades.forEach((trade) => {
+    const strategyKey = trade.strategy || '(No Strategy)';
+    if (!strategyStats[strategyKey]) {
+      strategyStats[strategyKey] = {
+        strategy: strategyKey,
+        totalTrades: 0,
+        openTrades: 0,
+        closedTrades: 0,
+        totalPnl: 0,
+        wins: 0,
+        losses: 0,
+        tickers: new Set<string>(),
+      };
+    }
+
+    const stat = strategyStats[strategyKey];
+    stat.totalTrades++;
+    stat.tickers.add(trade.ticker);
+
+    if (trade.status === 'open') {
+      stat.openTrades++;
+    } else {
+      stat.closedTrades++;
+      stat.totalPnl += trade.pnl || 0;
+      if ((trade.pnl || 0) > 0) {
+        stat.wins++;
+      } else if ((trade.pnl || 0) < 0) {
+        stat.losses++;
+      }
+    }
+  });
+
+  const byStrategy = Object.values(strategyStats)
+    .map((stat: any) => ({
+      ...stat,
+      tickers: Array.from(stat.tickers).sort(),
+      winRate: stat.closedTrades > 0 ? (stat.wins / stat.closedTrades) * 100 : 0,
+    }))
+    .sort((a: any, b: any) => b.totalPnl - a.totalPnl);
+
   return {
     overall: {
       totalTrades,
@@ -225,5 +267,6 @@ async function calculateStats(where: any) {
       avgLoss: parseFloat(avgLoss.toFixed(2)),
     },
     byTicker,
+    byStrategy,
   };
 }
