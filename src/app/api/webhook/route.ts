@@ -387,13 +387,14 @@ async function handleTakeProfit(payload: WebhookPayload): Promise<EntryResult> {
 
   // FIRST: Check for recent TP events to catch race conditions
   // If there's already a take_profit event for this ticker+strategy in the last 60 seconds, it's a duplicate
+  // IMPORTANT: Must match strategy exactly - use null for trades without strategy
   const recentTPEvent = await prisma.tradeEvent.findFirst({
     where: {
       eventType: 'take_profit',
       createdAt: { gte: new Date(Date.now() - 60 * 1000) },
       trade: {
         ticker,
-        strategy: strategy || undefined,
+        strategy: strategy ? strategy : null, // Explicit: match exact strategy or NULL if no strategy
       },
     },
     include: { trade: true },
@@ -446,7 +447,7 @@ async function handleTakeProfit(payload: WebhookPayload): Promise<EntryResult> {
     const recentClosed = await prisma.trade.findFirst({
       where: {
         ticker,
-        strategy: strategy || undefined,
+        strategy: strategy ? strategy : null, // Explicit: match exact strategy or NULL
         status: 'closed',
         exitReason: 'take_profit',
         closedAt: { gte: new Date(Date.now() - 60 * 1000) },
@@ -505,13 +506,14 @@ async function handleStopLoss(payload: WebhookPayload): Promise<EntryResult> {
 
   // FIRST: Check for recent SL events to catch race conditions
   // If there's already a stop_loss event for this ticker+strategy in the last 60 seconds, it's a duplicate
+  // IMPORTANT: Must match strategy exactly - use null for trades without strategy
   const recentSLEvent = await prisma.tradeEvent.findFirst({
     where: {
       eventType: 'stop_loss',
       createdAt: { gte: new Date(Date.now() - 60 * 1000) },
       trade: {
         ticker,
-        strategy: strategy || undefined,
+        strategy: strategy ? strategy : null, // Explicit: match exact strategy or NULL if no strategy
       },
     },
     include: { trade: true },
@@ -564,7 +566,7 @@ async function handleStopLoss(payload: WebhookPayload): Promise<EntryResult> {
     const recentClosed = await prisma.trade.findFirst({
       where: {
         ticker,
-        strategy: strategy || undefined,
+        strategy: strategy ? strategy : null, // Explicit: match exact strategy or NULL
         status: 'closed',
         exitReason: 'stop_loss',
         closedAt: { gte: new Date(Date.now() - 60 * 1000) },
