@@ -385,6 +385,26 @@ async function handleTakeProfit(payload: WebhookPayload): Promise<EntryResult> {
 
   console.log(`🎯 Processing take_profit - Ticker: ${ticker}, Strategy from signal: ${strategy || 'NONE'}`);
 
+  // FIRST: Check for recent TP events to catch race conditions
+  // If there's already a take_profit event for this ticker+strategy in the last 60 seconds, it's a duplicate
+  const recentTPEvent = await prisma.tradeEvent.findFirst({
+    where: {
+      eventType: 'take_profit',
+      createdAt: { gte: new Date(Date.now() - 60 * 1000) },
+      trade: {
+        ticker,
+        strategy: strategy || undefined,
+      },
+    },
+    include: { trade: true },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  if (recentTPEvent) {
+    console.log(`⚠️ Duplicate take_profit detected - recent TP event exists for ${ticker}/${strategy || 'no-strategy'} (event ${recentTPEvent.id}, trade ${recentTPEvent.tradeId}, ${Math.round((Date.now() - recentTPEvent.createdAt.getTime()) / 1000)}s ago)`);
+    return { trade: recentTPEvent.trade, isDuplicate: true };
+  }
+
   // Count all open trades for this ticker to understand the situation
   const allOpenTrades = await prisma.trade.findMany({
     where: {
@@ -482,6 +502,26 @@ async function handleStopLoss(payload: WebhookPayload): Promise<EntryResult> {
   const { ticker, price, pnl: payloadPnl, strategy } = payload;
 
   console.log(`🛑 Processing stop_loss - Ticker: ${ticker}, Strategy from signal: ${strategy || 'NONE'}`);
+
+  // FIRST: Check for recent SL events to catch race conditions
+  // If there's already a stop_loss event for this ticker+strategy in the last 60 seconds, it's a duplicate
+  const recentSLEvent = await prisma.tradeEvent.findFirst({
+    where: {
+      eventType: 'stop_loss',
+      createdAt: { gte: new Date(Date.now() - 60 * 1000) },
+      trade: {
+        ticker,
+        strategy: strategy || undefined,
+      },
+    },
+    include: { trade: true },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  if (recentSLEvent) {
+    console.log(`⚠️ Duplicate stop_loss detected - recent SL event exists for ${ticker}/${strategy || 'no-strategy'} (event ${recentSLEvent.id}, trade ${recentSLEvent.tradeId}, ${Math.round((Date.now() - recentSLEvent.createdAt.getTime()) / 1000)}s ago)`);
+    return { trade: recentSLEvent.trade, isDuplicate: true };
+  }
 
   // Count all open trades for this ticker to understand the situation
   const allOpenTrades = await prisma.trade.findMany({
