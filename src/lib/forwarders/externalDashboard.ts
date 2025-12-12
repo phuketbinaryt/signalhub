@@ -33,6 +33,7 @@ export async function forwardToExternalDashboard(payload: any): Promise<void> {
       stopLoss: payload.stopLoss ?? null,
       takeProfit: payload.takeProfit ?? null,
       positionSize: payload.quantity || 1,
+      strategy: payload.strategy ?? null,
     };
 
     // Build URL with secret as query parameter
