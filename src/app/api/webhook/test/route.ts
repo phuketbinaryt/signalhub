@@ -25,8 +25,8 @@ function parseTextWebhook(content: string): ParsedPayload | null {
     if (content.includes('BUY Signal') && !content.includes('SKIPPED')) {
       const tickerMatch = content.match(/^(?:[^\s]+\s+)?([A-Z0-9!@#$%^&*_+\-=]+)\s+BUY/i);
       const entryMatch = content.match(/Entry:\s*([\d.]+)/);
-      const slMatch = content.match(/SL:\s*([\d.]+)/);
-      const tpMatch = content.match(/TP:\s*([\d.]+)/);
+      const slMatch = content.match(/SL\d*:\s*([\d.]+)/);  // Matches SL:, SL1:, SL2:, etc.
+      const tpMatch = content.match(/TP\d*:\s*([\d.]+)/);  // Matches TP:, TP1:, TP2:, etc.
       const contractsMatch = content.match(/Contracts:\s*(\d+)/);
 
       if (tickerMatch && entryMatch) {
@@ -46,8 +46,8 @@ function parseTextWebhook(content: string): ParsedPayload | null {
     if (content.includes('SELL Signal') && !content.includes('SKIPPED')) {
       const tickerMatch = content.match(/^(?:[^\s]+\s+)?([A-Z0-9!@#$%^&*_+\-=]+)\s+SELL/i);
       const entryMatch = content.match(/Entry:\s*([\d.]+)/);
-      const slMatch = content.match(/SL:\s*([\d.]+)/);
-      const tpMatch = content.match(/TP:\s*([\d.]+)/);
+      const slMatch = content.match(/SL\d*:\s*([\d.]+)/);  // Matches SL:, SL1:, SL2:, etc.
+      const tpMatch = content.match(/TP\d*:\s*([\d.]+)/);  // Matches TP:, TP1:, TP2:, etc.
       const contractsMatch = content.match(/Contracts:\s*(\d+)/);
 
       if (tickerMatch && entryMatch) {
