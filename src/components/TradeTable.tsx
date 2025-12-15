@@ -67,6 +67,11 @@ export default function TradeTable({ trades, onTradeUpdate }: TradeTableProps) {
         updateData.pnl = parseFloat(formData.pnl);
       }
 
+      // If trade is open and we're adding exit data, close it
+      if (editingTrade.status === 'open' && (updateData.exitPrice || updateData.pnl)) {
+        updateData.status = 'closed';
+      }
+
       const response = await fetch(`/api/trades/${editingTrade.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },

@@ -91,7 +91,7 @@ export function ActionsDropdown({ trade, onDelete, onComplete, onEdit }: Actions
   const handleEdit = async () => {
     setIsSubmitting(true);
     try {
-      const updateData: { exitPrice?: number; exitReason?: string; pnl?: number } = {};
+      const updateData: { exitPrice?: number; exitReason?: string; pnl?: number; status?: string } = {};
 
       if (exitPrice !== '') {
         updateData.exitPrice = parseFloat(exitPrice);
@@ -101,6 +101,11 @@ export function ActionsDropdown({ trade, onDelete, onComplete, onEdit }: Actions
       }
       if (pnl !== '') {
         updateData.pnl = parseFloat(pnl);
+      }
+
+      // If trade is open and we're adding exit data, close it
+      if (trade.status === 'open' && (updateData.exitPrice || updateData.pnl)) {
+        updateData.status = 'closed';
       }
 
       const response = await fetch(`/api/trades/${trade.id}`, {
