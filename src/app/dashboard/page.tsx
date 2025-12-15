@@ -264,7 +264,7 @@ function Dashboard() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ exitPrice, pnl, exitReason }),
+        body: JSON.stringify({ exitPrice, pnl, exitReason, status: 'closed' }),
       });
 
       if (!response.ok) {
