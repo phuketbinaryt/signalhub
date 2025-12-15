@@ -3,9 +3,9 @@ import { logger } from '../logger';
 
 export async function forwardToPickMyTrade(payload: any): Promise<void> {
   try {
-    // Only forward entry signals
-    if (payload.action !== 'entry') {
-      console.log('PickMyTrade: Skipping non-entry signal');
+    // Only forward entry and cancel signals
+    if (payload.action !== 'entry' && payload.action !== 'cancel') {
+      console.log('PickMyTrade: Skipping non-entry/cancel signal');
       return;
     }
 
@@ -130,15 +130,23 @@ export async function forwardToPickMyTrade(payload: any): Promise<void> {
           console.log(`PickMyTrade [${config.name}]: Using custom contract ${symbolToUse} instead of ${payload.ticker}`);
         }
 
+        // Determine data field based on action
+        let dataField: string;
+        if (payload.action === 'cancel') {
+          dataField = 'close';
+        } else {
+          dataField = payload.direction === 'long' ? 'buy' : 'sell';
+        }
+
         // Transform payload to PickMyTrade format
         const pickMyTradePayload = {
           symbol: symbolToUse,
           date: new Date().toISOString(),
-          data: payload.direction === 'long' ? 'buy' : 'sell',
+          data: dataField,
           quantity: finalQuantity,
           risk_percentage: 0,
           price: payload.price,
-          gtd_in_second: 0,
+          gtd_in_second: payload.gtdInSeconds || 0,
           stp_limit_stp_price: 0,
           tp: payload.takeProfit || 0,
           percentage_tp: 0,
@@ -158,7 +166,7 @@ export async function forwardToPickMyTrade(payload: any): Promise<void> {
           pyramid: false,
           same_direction_ignore: false,
           reverse_order_close: true,
-          order_type: 'MKT',
+          order_type: payload.orderType || 'MKT',
           multiple_accounts: [
             {
               token: config.token,
@@ -170,8 +178,11 @@ export async function forwardToPickMyTrade(payload: any): Promise<void> {
         };
 
         console.log(`📤 Forwarding to PickMyTrade [${config.name}]:`, {
+          action: payload.action,
           ticker: payload.ticker,
           direction: payload.direction,
+          orderType: payload.orderType || 'MKT',
+          gtdInSeconds: payload.gtdInSeconds || 0,
           urls: webhookUrls.length,
         });
 

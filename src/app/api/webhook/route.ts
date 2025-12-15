@@ -11,7 +11,7 @@ export const revalidate = 0;
 
 interface WebhookPayload {
   secret?: string;
-  action: 'entry' | 'take_profit' | 'stop_loss';
+  action: 'entry' | 'take_profit' | 'stop_loss' | 'cancel';
   ticker: string;
   price: number;
   direction?: 'long' | 'short';
@@ -21,6 +21,8 @@ interface WebhookPayload {
   pnl?: number; // P&L from TradingView
   strategy?: string; // Strategy name from TradingView
   content?: string; // For text-based format
+  orderType?: string; // Order type: MKT, LMT, etc. (defaults to MKT)
+  gtdInSeconds?: number; // Good-til-date in seconds (defaults to 0)
 }
 
 // Parse text-based webhook format
@@ -29,6 +31,12 @@ function parseTextWebhook(content: string): Partial<WebhookPayload> | null {
     // Extract strategy name (common to all signal types)
     const strategyMatch = content.match(/Strategy:\s*([^\s|]+)/);
     const strategy = strategyMatch ? strategyMatch[1] : undefined;
+
+    // Extract order type and GTD (common to entry signals)
+    const orderTypeMatch = content.match(/OrderType:\s*([A-Z]+)/i);
+    const orderType = orderTypeMatch ? orderTypeMatch[1].toUpperCase() : undefined;
+    const gtdMatch = content.match(/GTD:\s*(\d+)/i);
+    const gtdInSeconds = gtdMatch ? parseInt(gtdMatch[1]) : undefined;
 
     // Entry signals - regex supports optional emoji prefix (e.g., "🚀 CL1! BUY" or "CL1! BUY")
     if (content.includes('BUY Signal') && !content.includes('SKIPPED')) {
@@ -48,6 +56,8 @@ function parseTextWebhook(content: string): Partial<WebhookPayload> | null {
           takeProfit: tpMatch ? parseFloat(tpMatch[1]) : undefined,
           quantity: contractsMatch ? parseInt(contractsMatch[1]) : 1,
           strategy,
+          orderType,
+          gtdInSeconds,
         };
       }
     }
@@ -68,6 +78,21 @@ function parseTextWebhook(content: string): Partial<WebhookPayload> | null {
           stopLoss: slMatch ? parseFloat(slMatch[1]) : undefined,
           takeProfit: tpMatch ? parseFloat(tpMatch[1]) : undefined,
           quantity: contractsMatch ? parseInt(contractsMatch[1]) : 1,
+          strategy,
+          orderType,
+          gtdInSeconds,
+        };
+      }
+    }
+
+    // Cancel order signal
+    if (content.includes('CANCEL')) {
+      const tickerMatch = content.match(/^(?:[^\s]+\s+)?([A-Z0-9!@#$%^&*_+\-=]+)\s+CANCEL/i);
+      if (tickerMatch) {
+        return {
+          action: 'cancel',
+          ticker: tickerMatch[1],
+          price: 0,
           strategy,
         };
       }
@@ -199,6 +224,8 @@ export async function POST(request: NextRequest) {
       ticker: payload.ticker,
       price: payload.price,
       direction: payload.direction,
+      orderType: payload.orderType || 'MKT',
+      gtdInSeconds: payload.gtdInSeconds || 0,
       timestamp: new Date().toISOString(),
     });
 
@@ -231,6 +258,13 @@ export async function POST(request: NextRequest) {
         const slResult = await handleStopLoss(payload);
         trade = slResult.trade;
         isDuplicate = slResult.isDuplicate;
+        break;
+      }
+      case 'cancel': {
+        // Cancel signals don't create/update trades, just forward to PickMyTrade
+        console.log(`❌ Cancel signal received for ${payload.ticker} | Strategy: ${payload.strategy || 'N/A'}`);
+        trade = null;
+        isDuplicate = false;
         break;
       }
       default:
