@@ -11,7 +11,7 @@ export const revalidate = 0;
 
 interface WebhookPayload {
   secret?: string;
-  action: 'entry' | 'take_profit' | 'stop_loss' | 'cancel';
+  action: 'entry' | 'take_profit' | 'stop_loss' | 'cancel' | 'order_filled';
   ticker: string;
   price: number;
   direction?: 'long' | 'short';
@@ -81,6 +81,31 @@ function parseTextWebhook(content: string): Partial<WebhookPayload> | null {
           strategy,
           orderType,
           gtdInSeconds,
+        };
+      }
+    }
+
+    // Order Filled signal (limit order was filled)
+    if (content.includes('ORDER FILLED')) {
+      // Match: NQ1! BUY ORDER FILLED or NQ1! SELL ORDER FILLED
+      const tickerMatch = content.match(/^(?:[^\s]+\s+)?([A-Z0-9!@#$%^&*_+\-=]+)\s+(BUY|SELL)\s+ORDER FILLED/i);
+      const entryMatch = content.match(/Entry:\s*([\d.]+)/);
+      const slMatch = content.match(/SL\d*:\s*([\d.]+)/);
+      const tpMatch = content.match(/TP\d*:\s*([\d.]+)/);
+      const contractsMatch = content.match(/Contracts:\s*(\d+)/);
+
+      if (tickerMatch && entryMatch) {
+        const direction = tickerMatch[2].toUpperCase() === 'BUY' ? 'long' : 'short';
+        return {
+          action: 'order_filled',
+          ticker: tickerMatch[1],
+          price: parseFloat(entryMatch[1]),
+          direction,
+          stopLoss: slMatch ? parseFloat(slMatch[1]) : undefined,
+          takeProfit: tpMatch ? parseFloat(tpMatch[1]) : undefined,
+          quantity: contractsMatch ? parseInt(contractsMatch[1]) : 1,
+          strategy,
+          orderType,
         };
       }
     }
@@ -207,7 +232,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate required fields
-    if (!payload.action || !payload.ticker || !payload.price) {
+    // Note: price can be 0 for cancel signals, so use explicit check
+    const priceIsValid = payload.price !== undefined && payload.price !== null;
+    const priceRequired = payload.action !== 'cancel'; // Cancel signals don't need a price
+
+    if (!payload.action || !payload.ticker || (priceRequired && !priceIsValid)) {
       console.error('❌ Invalid webhook - missing required fields:', {
         action: payload.action,
         ticker: payload.ticker,
@@ -243,9 +272,18 @@ export async function POST(request: NextRequest) {
 
     switch (payload.action) {
       case 'entry': {
-        const entryResult = await handleEntry(payload);
-        trade = entryResult.trade;
-        isDuplicate = entryResult.isDuplicate;
+        // LMT orders don't create trades - they only forward to PickMyTrade
+        // The trade is created when ORDER FILLED signal comes in
+        const isLimitOrder = (payload.orderType?.toUpperCase() || 'MKT') === 'LMT';
+        if (isLimitOrder) {
+          console.log(`📤 LMT entry for ${payload.ticker} - forwarding to PickMyTrade only (no trade created)`);
+          trade = null;
+          isDuplicate = false;
+        } else {
+          const entryResult = await handleEntry(payload);
+          trade = entryResult.trade;
+          isDuplicate = entryResult.isDuplicate;
+        }
         break;
       }
       case 'take_profit': {
@@ -265,6 +303,14 @@ export async function POST(request: NextRequest) {
         console.log(`❌ Cancel signal received for ${payload.ticker} | Strategy: ${payload.strategy || 'N/A'}`);
         trade = null;
         isDuplicate = false;
+        break;
+      }
+      case 'order_filled': {
+        // Order filled signals create a trade (limit order was filled)
+        // Forwarded to dashboard/telegram/discord/external but NOT PickMyTrade
+        const orderFilledResult = await handleOrderFilled(payload);
+        trade = orderFilledResult.trade;
+        isDuplicate = orderFilledResult.isDuplicate;
         break;
       }
       default:
@@ -649,6 +695,80 @@ async function handleStopLoss(payload: WebhookPayload): Promise<EntryResult> {
   });
 
   console.log(`🛑 Stop Loss HIT [ID: ${trade.id}] ${ticker} | Entry: ${openTrade.entryPrice} → Exit: ${price} | P&L: $${pnl.toFixed(2)} (${pnlPercent.toFixed(2)}%)`);
+  return { trade, isDuplicate: false };
+}
+
+async function handleOrderFilled(payload: WebhookPayload): Promise<EntryResult> {
+  const { ticker, price, direction, takeProfit, stopLoss, quantity, strategy } = payload;
+
+  console.log(`📥 Order Filled - Ticker: ${ticker}, Price: ${price}, Direction: ${direction}, Quantity: ${quantity}, Strategy: ${strategy || 'N/A'}`);
+
+  // Create the trade (similar to entry, but for filled limit orders)
+  const trade = await prisma.trade.create({
+    data: {
+      ticker,
+      direction: direction || 'long',
+      entryPrice: price,
+      takeProfit,
+      stopLoss,
+      quantity: quantity || 1.0,
+      strategy,
+      status: 'open',
+      events: {
+        create: {
+          eventType: 'order_filled',
+          price,
+          rawPayload: payload as any,
+        },
+      },
+    },
+    include: {
+      events: true,
+    },
+  });
+
+  // Check for duplicate trades (same ticker + strategy, created within 60 seconds)
+  const recentCutoff = new Date(Date.now() - 60 * 1000);
+  const recentTrades = await prisma.trade.findMany({
+    where: {
+      ticker,
+      strategy: strategy || null,
+      status: 'open',
+      openedAt: { gte: recentCutoff },
+    },
+    orderBy: { openedAt: 'asc' },
+  });
+
+  // If there are multiple recent trades for same ticker+strategy, keep only the oldest
+  if (recentTrades.length > 1) {
+    const oldestTrade = recentTrades[0];
+    const duplicateIds = recentTrades.slice(1).map(t => t.id);
+
+    console.log(`⚠️ Race condition detected - ${recentTrades.length} trades for ${ticker}/${strategy || 'no-strategy'} in last 60s`);
+    console.log(`   Keeping oldest: ID ${oldestTrade.id} (created ${oldestTrade.openedAt.toISOString()})`);
+    console.log(`   Deleting duplicates: IDs ${duplicateIds.join(', ')}`);
+
+    await prisma.tradeEvent.deleteMany({
+      where: { tradeId: { in: duplicateIds } },
+    });
+    await prisma.trade.deleteMany({
+      where: { id: { in: duplicateIds } },
+    });
+
+    logger.warn('webhook', 'Duplicate order_filled trades cleaned up (race condition)', {
+      ticker,
+      strategy,
+      keptTradeId: oldestTrade.id,
+      deletedTradeIds: duplicateIds,
+      totalDuplicates: duplicateIds.length,
+    });
+
+    if (trade.id !== oldestTrade.id) {
+      return { trade: oldestTrade, isDuplicate: true };
+    }
+  }
+
+  console.log(`✅ Limit Order Filled [ID: ${trade.id}] ${ticker} ${direction?.toUpperCase()} @ ${price} | Strategy: ${strategy || 'N/A'} | SL: ${stopLoss || 'N/A'} | TP: ${takeProfit || 'N/A'} | Qty: ${trade.quantity}`);
   return { trade, isDuplicate: false };
 }
 
