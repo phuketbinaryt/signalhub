@@ -65,6 +65,7 @@ function Dashboard() {
   const [sortBy, setSortBy] = useState<'time' | 'ticker'>('time');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [allStrategies, setAllStrategies] = useState<string[]>([]);
+  const [strategyStatsMap, setStrategyStatsMap] = useState<Record<string, any>>({});
   const [visibleStrategies, setVisibleStrategies] = useState<string[]>([]);
   const [visibilityInitialized, setVisibilityInitialized] = useState(false);
   const TRADES_PER_PAGE = 25;
@@ -89,6 +90,13 @@ function Dashboard() {
           const data = await response.json();
           const strategyNames = data.strategies.map((s: any) => s.strategy).filter(Boolean);
           setAllStrategies(strategyNames);
+
+          // Store strategy stats for the Max Drawdown card
+          const statsMap: Record<string, any> = {};
+          data.strategies.forEach((s: any) => {
+            statsMap[s.strategy] = s;
+          });
+          setStrategyStatsMap(statsMap);
 
           // Initialize visible strategies from localStorage or default to all
           const saved = loadVisibleStrategies();
@@ -486,7 +494,7 @@ function Dashboard() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className={`grid grid-cols-1 md:grid-cols-2 ${selectedStrategy !== 'all' && strategyStatsMap[selectedStrategy] ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-4 mb-8`}>
           {/* Total Trades */}
           <div className="bg-[#111111] border border-[#222] rounded-xl p-5">
             <div className="flex items-start justify-between">
@@ -559,6 +567,26 @@ function Dashboard() {
               </div>
             </div>
           </div>
+
+          {/* Max Drawdown - only when a specific strategy is selected */}
+          {selectedStrategy !== 'all' && strategyStatsMap[selectedStrategy] && (
+            <div className="bg-[#111111] border border-[#222] rounded-xl p-5">
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="w-10 h-10 rounded-lg bg-red-500/20 flex items-center justify-center mb-3">
+                    <TrendingDown className="w-5 h-5 text-red-400" />
+                  </div>
+                  <div className="text-sm text-gray-400 mb-1">Max Drawdown</div>
+                  <div className="text-3xl font-bold text-red-400">
+                    -${strategyStatsMap[selectedStrategy].maxDrawdown.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {strategyStatsMap[selectedStrategy].maxDrawdownTrades} trade{strategyStatsMap[selectedStrategy].maxDrawdownTrades !== 1 ? 's' : ''} in drawdown
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {loading ? (

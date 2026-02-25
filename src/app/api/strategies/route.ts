@@ -160,15 +160,20 @@ export async function GET(request: NextRequest) {
       let cumulativePnl = 0;
       let peak = 0;
       let maxDrawdown = 0;
+      let tradesSincePeak = 0;
+      let maxDrawdownTrades = 0;
 
       sortedTrades.forEach((trade: any) => {
         cumulativePnl += trade.pnl;
         if (cumulativePnl > peak) {
           peak = cumulativePnl;
+          tradesSincePeak = 0;
         }
+        tradesSincePeak++;
         const drawdown = peak - cumulativePnl;
         if (drawdown > maxDrawdown) {
           maxDrawdown = drawdown;
+          maxDrawdownTrades = tradesSincePeak;
         }
       });
 
@@ -184,6 +189,7 @@ export async function GET(request: NextRequest) {
         avgWin: parseFloat(avgWin.toFixed(2)),
         avgLoss: parseFloat(avgLoss.toFixed(2)),
         maxDrawdown: parseFloat(maxDrawdown.toFixed(2)),
+        maxDrawdownTrades,
         tickers: Array.from(stat.tickers).sort(),
       };
     });
