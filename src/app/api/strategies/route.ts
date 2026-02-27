@@ -105,6 +105,8 @@ export async function GET(request: NextRequest) {
           losingPnl: 0,
           closedTradesOrdered: [], // For drawdown calculation
           tickers: new Set<string>(),
+          totalRR: 0,
+          rrCount: 0,
         };
       }
 
@@ -125,6 +127,16 @@ export async function GET(request: NextRequest) {
         } else if (pnl < 0) {
           stat.losses++;
           stat.losingPnl += pnl;
+        }
+
+        // Calculate risk-to-reward ratio if SL and TP are set
+        if (trade.stopLoss && trade.takeProfit) {
+          const risk = Math.abs(trade.entryPrice - trade.stopLoss);
+          const reward = Math.abs(trade.takeProfit - trade.entryPrice);
+          if (risk > 0) {
+            stat.totalRR += reward / risk;
+            stat.rrCount++;
+          }
         }
 
         // Store for drawdown calculation (only closed trades with closedAt)
@@ -149,6 +161,10 @@ export async function GET(request: NextRequest) {
 
       const avgLoss = stat.losses > 0
         ? stat.losingPnl / stat.losses
+        : 0;
+
+      const avgRR = stat.rrCount > 0
+        ? stat.totalRR / stat.rrCount
         : 0;
 
       // Calculate max drawdown
@@ -190,6 +206,7 @@ export async function GET(request: NextRequest) {
         avgLoss: parseFloat(avgLoss.toFixed(2)),
         maxDrawdown: parseFloat(maxDrawdown.toFixed(2)),
         maxDrawdownTrades,
+        avgRR: parseFloat(avgRR.toFixed(2)),
         tickers: Array.from(stat.tickers).sort(),
       };
     });

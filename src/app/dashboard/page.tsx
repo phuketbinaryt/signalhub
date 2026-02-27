@@ -547,6 +547,11 @@ function Dashboard() {
                 <div className="text-3xl font-bold text-white">{(stats?.winRate || 0).toFixed(1)}%</div>
                 <div className="text-xs text-gray-500 mt-1">
                   {stats?.winningTrades || 0}W / {stats?.losingTrades || 0}L
+                  {selectedStrategy !== 'all' && strategyStatsMap[selectedStrategy]?.avgRR > 0 && (
+                    <span className="ml-2 text-gray-400">
+                      Avg R:R 1:{strategyStatsMap[selectedStrategy].avgRR.toFixed(1)}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>

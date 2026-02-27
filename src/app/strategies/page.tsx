@@ -19,6 +19,7 @@ interface StrategyStats {
   avgLoss: number;
   maxDrawdown: number;
   maxDrawdownTrades: number;
+  avgRR: number;
   tickers: string[];
 }
 
