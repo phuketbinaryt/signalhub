@@ -68,6 +68,7 @@ function Dashboard() {
   const [strategyStatsMap, setStrategyStatsMap] = useState<Record<string, any>>({});
   const [visibleStrategies, setVisibleStrategies] = useState<string[]>([]);
   const [visibilityInitialized, setVisibilityInitialized] = useState(false);
+  const [allStrategyTrades, setAllStrategyTrades] = useState<any[]>([]);
   const TRADES_PER_PAGE = 25;
 
   // Sound notifications
@@ -119,6 +120,30 @@ function Dashboard() {
 
     fetchAllStrategies();
   }, []);
+
+  // Fetch all trades for strategy breakdowns (no pagination)
+  useEffect(() => {
+    if (selectedStrategy === 'all') {
+      setAllStrategyTrades([]);
+      return;
+    }
+    const fetchAllStrategyTrades = async () => {
+      try {
+        const params = new URLSearchParams();
+        params.append('strategy', selectedStrategy);
+        params.append('status', 'closed');
+        params.append('limit', '10000');
+        const response = await fetch(`/api/trades?${params.toString()}`);
+        if (response.ok) {
+          const data = await response.json();
+          setAllStrategyTrades(data.trades || []);
+        }
+      } catch (error) {
+        console.error('Error fetching strategy trades:', error);
+      }
+    };
+    fetchAllStrategyTrades();
+  }, [selectedStrategy]);
 
   useEffect(() => {
     fetchTrades();
@@ -366,16 +391,11 @@ function Dashboard() {
     { name: 'Losses', value: stats?.losingTrades || 0, count: stats?.losingTrades || 0, total: stats?.closedTrades || 1 },
   ];
 
-  // Monthly and daily P&L breakdowns (only computed when strategy is selected)
-  const closedTrades = useMemo(() =>
-    trades.filter((t: any) => t.status === 'closed' && t.closedAt && t.pnl != null),
-    [trades]
-  );
-
+  // Monthly and daily P&L breakdowns (computed from full strategy trades fetch)
   const monthlyPnl = useMemo(() => {
-    if (selectedStrategy === 'all') return [];
+    if (selectedStrategy === 'all' || allStrategyTrades.length === 0) return [];
     const grouped: Record<string, { pnl: number; trades: number; wins: number; losses: number }> = {};
-    closedTrades.forEach((t: any) => {
+    allStrategyTrades.forEach((t: any) => {
       const d = new Date(t.closedAt);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
       if (!grouped[key]) grouped[key] = { pnl: 0, trades: 0, wins: 0, losses: 0 };
@@ -387,12 +407,12 @@ function Dashboard() {
     return Object.entries(grouped)
       .sort(([a], [b]) => b.localeCompare(a))
       .map(([key, val]) => ({ month: key, ...val }));
-  }, [closedTrades, selectedStrategy]);
+  }, [allStrategyTrades, selectedStrategy]);
 
   const dailyPnl = useMemo(() => {
-    if (selectedStrategy === 'all') return [];
+    if (selectedStrategy === 'all' || allStrategyTrades.length === 0) return [];
     const grouped: Record<string, { pnl: number; trades: number; wins: number; losses: number }> = {};
-    closedTrades.forEach((t: any) => {
+    allStrategyTrades.forEach((t: any) => {
       const d = new Date(t.closedAt);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       if (!grouped[key]) grouped[key] = { pnl: 0, trades: 0, wins: 0, losses: 0 };
@@ -404,7 +424,7 @@ function Dashboard() {
     return Object.entries(grouped)
       .sort(([a], [b]) => b.localeCompare(a))
       .map(([key, val]) => ({ date: key, ...val }));
-  }, [closedTrades, selectedStrategy]);
+  }, [allStrategyTrades, selectedStrategy]);
 
   const periods = [
     { value: 'daily', label: 'Session' },
