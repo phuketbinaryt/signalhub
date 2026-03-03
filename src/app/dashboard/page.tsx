@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, useMemo, Suspense } from 'react';
 import { PerformanceCharts } from '@/components/PerformanceCharts';
 import { Button } from '@/components/ui/button';
 import { ActionsDropdown } from '@/components/ActionsDropdown';
@@ -365,6 +365,46 @@ function Dashboard() {
     { name: 'Wins', value: stats?.winningTrades || 0, count: stats?.winningTrades || 0, total: stats?.closedTrades || 1 },
     { name: 'Losses', value: stats?.losingTrades || 0, count: stats?.losingTrades || 0, total: stats?.closedTrades || 1 },
   ];
+
+  // Monthly and daily P&L breakdowns (only computed when strategy is selected)
+  const closedTrades = useMemo(() =>
+    trades.filter((t: any) => t.status === 'closed' && t.closedAt && t.pnl != null),
+    [trades]
+  );
+
+  const monthlyPnl = useMemo(() => {
+    if (selectedStrategy === 'all') return [];
+    const grouped: Record<string, { pnl: number; trades: number; wins: number; losses: number }> = {};
+    closedTrades.forEach((t: any) => {
+      const d = new Date(t.closedAt);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      if (!grouped[key]) grouped[key] = { pnl: 0, trades: 0, wins: 0, losses: 0 };
+      grouped[key].pnl += t.pnl;
+      grouped[key].trades++;
+      if (t.pnl > 0) grouped[key].wins++;
+      else if (t.pnl < 0) grouped[key].losses++;
+    });
+    return Object.entries(grouped)
+      .sort(([a], [b]) => b.localeCompare(a))
+      .map(([key, val]) => ({ month: key, ...val }));
+  }, [closedTrades, selectedStrategy]);
+
+  const dailyPnl = useMemo(() => {
+    if (selectedStrategy === 'all') return [];
+    const grouped: Record<string, { pnl: number; trades: number; wins: number; losses: number }> = {};
+    closedTrades.forEach((t: any) => {
+      const d = new Date(t.closedAt);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      if (!grouped[key]) grouped[key] = { pnl: 0, trades: 0, wins: 0, losses: 0 };
+      grouped[key].pnl += t.pnl;
+      grouped[key].trades++;
+      if (t.pnl > 0) grouped[key].wins++;
+      else if (t.pnl < 0) grouped[key].losses++;
+    });
+    return Object.entries(grouped)
+      .sort(([a], [b]) => b.localeCompare(a))
+      .map(([key, val]) => ({ date: key, ...val }));
+  }, [closedTrades, selectedStrategy]);
 
   const periods = [
     { value: 'daily', label: 'Session' },
@@ -786,6 +826,102 @@ function Dashboard() {
                 </div>
               )}
             </div>
+
+            {/* Monthly P&L - only when a specific strategy is selected */}
+            {selectedStrategy !== 'all' && monthlyPnl.length > 0 && (
+              <div className="bg-[#111111] border border-[#222] rounded-xl overflow-hidden mb-8">
+                <div className="px-6 py-4 border-b border-[#222]">
+                  <h2 className="text-lg font-semibold text-white">Monthly P&L</h2>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-[#222]">
+                        <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Month</th>
+                        <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Trades</th>
+                        <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">W/L</th>
+                        <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Win Rate</th>
+                        <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">P&L</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {monthlyPnl.map((row) => {
+                        const [year, month] = row.month.split('-');
+                        const label = new Date(parseInt(year), parseInt(month) - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                        const winRate = row.trades > 0 ? ((row.wins / row.trades) * 100) : 0;
+                        return (
+                          <tr key={row.month} className="border-b border-[#1a1a1a] hover:bg-[#1a1a1a] transition-colors">
+                            <td className="px-6 py-4 text-white font-medium">{label}</td>
+                            <td className="px-6 py-4 text-white">{row.trades}</td>
+                            <td className="px-6 py-4">
+                              <span className="text-emerald-400">{row.wins}</span>
+                              <span className="text-gray-600">/</span>
+                              <span className="text-red-400">{row.losses}</span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className={`text-sm ${winRate >= 50 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                {winRate.toFixed(1)}%
+                              </span>
+                            </td>
+                            <td className={`px-6 py-4 font-medium ${row.pnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                              {row.pnl >= 0 ? '+' : ''}${row.pnl.toFixed(2)}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Daily P&L - only when a specific strategy is selected */}
+            {selectedStrategy !== 'all' && dailyPnl.length > 0 && (
+              <div className="bg-[#111111] border border-[#222] rounded-xl overflow-hidden mb-8">
+                <div className="px-6 py-4 border-b border-[#222]">
+                  <h2 className="text-lg font-semibold text-white">Daily P&L</h2>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-[#222]">
+                        <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Date</th>
+                        <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Trades</th>
+                        <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">W/L</th>
+                        <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Win Rate</th>
+                        <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">P&L</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dailyPnl.map((row) => {
+                        const d = new Date(row.date + 'T00:00:00');
+                        const label = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+                        const winRate = row.trades > 0 ? ((row.wins / row.trades) * 100) : 0;
+                        return (
+                          <tr key={row.date} className="border-b border-[#1a1a1a] hover:bg-[#1a1a1a] transition-colors">
+                            <td className="px-6 py-4 text-white font-medium">{label}</td>
+                            <td className="px-6 py-4 text-white">{row.trades}</td>
+                            <td className="px-6 py-4">
+                              <span className="text-emerald-400">{row.wins}</span>
+                              <span className="text-gray-600">/</span>
+                              <span className="text-red-400">{row.losses}</span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className={`text-sm ${winRate >= 50 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                {winRate.toFixed(1)}%
+                              </span>
+                            </td>
+                            <td className={`px-6 py-4 font-medium ${row.pnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                              {row.pnl >= 0 ? '+' : ''}${row.pnl.toFixed(2)}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
 
             {/* Performance Charts */}
             <div className="mb-8">
