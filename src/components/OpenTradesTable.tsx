@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { formatPrice } from '@/lib/utils';
 
 interface Trade {
   id: number;
@@ -105,7 +106,7 @@ export function OpenTradesTable({ trades, getTickerColor }: OpenTradesTableProps
                     </span>
                   </td>
                   <td className="p-4 font-mono text-sm">
-                    ${trade.entryPrice.toFixed(2)}
+                    ${formatPrice(trade.entryPrice, trade.ticker)}
                   </td>
                   <td className="p-4 text-sm">
                     {trade.quantity}

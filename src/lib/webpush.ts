@@ -1,5 +1,6 @@
 import webpush from 'web-push';
 import { prisma } from './prisma';
+import { formatPrice } from './utils';
 
 // Configure web-push with VAPID details
 const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
@@ -95,7 +96,7 @@ export function formatTradeNotification(payload: any): PushNotificationPayload {
     case 'entry':
       const directionLabel = direction === 'long' ? 'BUY' : 'SELL';
       title = `🟢 ${directionLabel} ${ticker}`;
-      body = `Entry @ $${price.toFixed(2)}`;
+      body = `Entry @ $${formatPrice(price, ticker)}`;
       break;
 
     case 'take_profit':
@@ -110,7 +111,7 @@ export function formatTradeNotification(payload: any): PushNotificationPayload {
 
     default:
       title = `Signal - ${ticker}`;
-      body = `${action} @ $${price.toFixed(2)}`;
+      body = `${action} @ $${formatPrice(price, ticker)}`;
   }
 
   return {

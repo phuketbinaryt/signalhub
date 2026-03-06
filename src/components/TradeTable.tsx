@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { formatPrice } from '@/lib/utils';
 
 interface Trade {
   id: number;
@@ -170,16 +171,16 @@ export default function TradeTable({ trades, onTradeUpdate }: TradeTableProps) {
                     {trade.quantity}
                   </td>
                   <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-500">
-                    ${trade.entryPrice.toFixed(2)}
+                    ${formatPrice(trade.entryPrice, trade.ticker)}
                   </td>
                   <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-500">
-                    {trade.takeProfit ? `$${trade.takeProfit.toFixed(2)}` : '-'}
+                    {trade.takeProfit ? `$${formatPrice(trade.takeProfit, trade.ticker)}` : '-'}
                   </td>
                   <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-500">
-                    {trade.stopLoss ? `$${trade.stopLoss.toFixed(2)}` : '-'}
+                    {trade.stopLoss ? `$${formatPrice(trade.stopLoss, trade.ticker)}` : '-'}
                   </td>
                   <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-500">
-                    {trade.exitPrice ? `$${trade.exitPrice.toFixed(2)}` : '-'}
+                    {trade.exitPrice ? `$${formatPrice(trade.exitPrice, trade.ticker)}` : '-'}
                   </td>
                   <td className="px-3 py-3 whitespace-nowrap">
                     {trade.exitReason ? (
@@ -305,7 +306,7 @@ export default function TradeTable({ trades, onTradeUpdate }: TradeTableProps) {
               </div>
 
               <div className="text-sm text-gray-500 bg-gray-50 p-3 rounded">
-                <p><strong>Entry:</strong> ${editingTrade.entryPrice.toFixed(2)}</p>
+                <p><strong>Entry:</strong> ${formatPrice(editingTrade.entryPrice, editingTrade.ticker)}</p>
                 <p><strong>Direction:</strong> {editingTrade.direction.toUpperCase()}</p>
                 <p><strong>Quantity:</strong> {editingTrade.quantity}</p>
               </div>

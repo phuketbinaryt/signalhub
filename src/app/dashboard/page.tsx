@@ -13,6 +13,7 @@ import { useSoundNotifications } from '@/hooks/useSoundNotifications';
 import { TrendingUp, TrendingDown, Settings, BarChart3, Zap, Target, DollarSign } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { formatPrice } from '@/lib/utils';
 
 interface TradeData {
   trades: any[];
@@ -745,12 +746,12 @@ function Dashboard() {
                           </span>
                         </td>
                         <td className="px-2 py-3 text-sm text-white">{trade.quantity}</td>
-                        <td className="px-2 py-3 text-sm text-cyan-400">${trade.entryPrice.toFixed(2)}</td>
+                        <td className="px-2 py-3 text-sm text-cyan-400">${formatPrice(trade.entryPrice, trade.ticker)}</td>
                         <td className="px-2 py-3 text-sm text-cyan-400">
-                          {trade.exitPrice ? `$${trade.exitPrice.toFixed(2)}` : trade.takeProfit ? `$${trade.takeProfit.toFixed(2)}` : '-'}
+                          {trade.exitPrice ? `$${formatPrice(trade.exitPrice, trade.ticker)}` : trade.takeProfit ? `$${formatPrice(trade.takeProfit, trade.ticker)}` : '-'}
                         </td>
-                        <td className="px-2 py-3 text-sm text-cyan-400">{trade.stopLoss ? `$${trade.stopLoss.toFixed(2)}` : '-'}</td>
-                        <td className="px-2 py-3 text-sm text-cyan-400">{trade.takeProfit ? `$${trade.takeProfit.toFixed(2)}` : '-'}</td>
+                        <td className="px-2 py-3 text-sm text-cyan-400">{trade.stopLoss ? `$${formatPrice(trade.stopLoss, trade.ticker)}` : '-'}</td>
+                        <td className="px-2 py-3 text-sm text-cyan-400">{trade.takeProfit ? `$${formatPrice(trade.takeProfit, trade.ticker)}` : '-'}</td>
                         <td className="px-2 py-3">
                           <span className="inline-flex px-1.5 py-0.5 rounded text-xs bg-[#1a1a1a] text-gray-400 border border-[#333]">
                             {trade.status.toUpperCase()}
