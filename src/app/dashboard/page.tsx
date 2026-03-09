@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo, Suspense } from 'react';
+import React, { useEffect, useState, useMemo, Suspense } from 'react';
 import { PerformanceCharts } from '@/components/PerformanceCharts';
 import { Button } from '@/components/ui/button';
 import { ActionsDropdown } from '@/components/ActionsDropdown';
@@ -70,6 +70,7 @@ function Dashboard() {
   const [visibleStrategies, setVisibleStrategies] = useState<string[]>([]);
   const [visibilityInitialized, setVisibilityInitialized] = useState(false);
   const [allStrategyTrades, setAllStrategyTrades] = useState<any[]>([]);
+  const [expandedDay, setExpandedDay] = useState<string | null>(null);
   const TRADES_PER_PAGE = 25;
 
   // Sound notifications
@@ -426,6 +427,27 @@ function Dashboard() {
       .sort(([a], [b]) => b.localeCompare(a))
       .map(([key, val]) => ({ date: key, ...val }));
   }, [allStrategyTrades, selectedStrategy]);
+
+  const hourlyPnl = useMemo(() => {
+    if (!expandedDay || allStrategyTrades.length === 0) return [];
+    const grouped: Record<string, { pnl: number; trades: number; wins: number; losses: number; tradesList: any[] }> = {};
+    allStrategyTrades.forEach((t: any) => {
+      const d = new Date(t.closedAt);
+      const dayKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      if (dayKey !== expandedDay) return;
+      const hour = d.getHours();
+      const hourKey = `${String(hour).padStart(2, '0')}:00`;
+      if (!grouped[hourKey]) grouped[hourKey] = { pnl: 0, trades: 0, wins: 0, losses: 0, tradesList: [] };
+      grouped[hourKey].pnl += t.pnl;
+      grouped[hourKey].trades++;
+      grouped[hourKey].tradesList.push(t);
+      if (t.pnl > 0) grouped[hourKey].wins++;
+      else if (t.pnl < 0) grouped[hourKey].losses++;
+    });
+    return Object.entries(grouped)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, val]) => ({ hour: key, ...val }));
+  }, [allStrategyTrades, expandedDay]);
 
   const periods = [
     { value: 'daily', label: 'Session' },
@@ -918,24 +940,78 @@ function Dashboard() {
                         const d = new Date(row.date + 'T00:00:00');
                         const label = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
                         const winRate = row.trades > 0 ? ((row.wins / row.trades) * 100) : 0;
+                        const isExpanded = expandedDay === row.date;
                         return (
-                          <tr key={row.date} className="border-b border-[#1a1a1a] hover:bg-[#1a1a1a] transition-colors">
-                            <td className="px-6 py-4 text-white font-medium">{label}</td>
-                            <td className="px-6 py-4 text-white">{row.trades}</td>
-                            <td className="px-6 py-4">
-                              <span className="text-emerald-400">{row.wins}</span>
-                              <span className="text-gray-600">/</span>
-                              <span className="text-red-400">{row.losses}</span>
-                            </td>
-                            <td className="px-6 py-4">
-                              <span className={`text-sm ${winRate >= 50 ? 'text-emerald-400' : 'text-red-400'}`}>
-                                {winRate.toFixed(1)}%
-                              </span>
-                            </td>
-                            <td className={`px-6 py-4 font-medium ${row.pnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                              {row.pnl >= 0 ? '+' : ''}${row.pnl.toFixed(2)}
-                            </td>
-                          </tr>
+                          <React.Fragment key={row.date}>
+                            <tr
+                              className="border-b border-[#1a1a1a] hover:bg-[#1a1a1a] transition-colors cursor-pointer"
+                              onClick={() => setExpandedDay(isExpanded ? null : row.date)}
+                            >
+                              <td className="px-6 py-4 text-white font-medium">
+                                <span className="inline-flex items-center gap-2">
+                                  <span className={`text-gray-500 text-xs transition-transform ${isExpanded ? 'rotate-90' : ''}`}>&#9654;</span>
+                                  {label}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 text-white">{row.trades}</td>
+                              <td className="px-6 py-4">
+                                <span className="text-emerald-400">{row.wins}</span>
+                                <span className="text-gray-600">/</span>
+                                <span className="text-red-400">{row.losses}</span>
+                              </td>
+                              <td className="px-6 py-4">
+                                <span className={`text-sm ${winRate >= 50 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                  {winRate.toFixed(1)}%
+                                </span>
+                              </td>
+                              <td className={`px-6 py-4 font-medium ${row.pnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                {row.pnl >= 0 ? '+' : ''}${row.pnl.toFixed(2)}
+                              </td>
+                            </tr>
+                            {isExpanded && hourlyPnl.length > 0 && (
+                              <tr>
+                                <td colSpan={5} className="p-0">
+                                  <div className="bg-[#0d0d0d] border-y border-[#222]">
+                                    <table className="w-full">
+                                      <thead>
+                                        <tr className="border-b border-[#1a1a1a]">
+                                          <th className="px-6 py-2 text-left text-xs text-gray-600 uppercase tracking-wider pl-12">Hour</th>
+                                          <th className="px-6 py-2 text-left text-xs text-gray-600 uppercase tracking-wider">Trades</th>
+                                          <th className="px-6 py-2 text-left text-xs text-gray-600 uppercase tracking-wider">W/L</th>
+                                          <th className="px-6 py-2 text-left text-xs text-gray-600 uppercase tracking-wider">Win Rate</th>
+                                          <th className="px-6 py-2 text-left text-xs text-gray-600 uppercase tracking-wider">P&L</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {hourlyPnl.map((hRow) => {
+                                          const hWinRate = hRow.trades > 0 ? ((hRow.wins / hRow.trades) * 100) : 0;
+                                          return (
+                                            <tr key={hRow.hour} className="border-b border-[#111] hover:bg-[#151515] transition-colors">
+                                              <td className="px-6 py-2.5 text-gray-300 text-sm pl-12">{hRow.hour}</td>
+                                              <td className="px-6 py-2.5 text-gray-300 text-sm">{hRow.trades}</td>
+                                              <td className="px-6 py-2.5 text-sm">
+                                                <span className="text-emerald-400">{hRow.wins}</span>
+                                                <span className="text-gray-600">/</span>
+                                                <span className="text-red-400">{hRow.losses}</span>
+                                              </td>
+                                              <td className="px-6 py-2.5">
+                                                <span className={`text-sm ${hWinRate >= 50 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                  {hWinRate.toFixed(1)}%
+                                                </span>
+                                              </td>
+                                              <td className={`px-6 py-2.5 text-sm font-medium ${hRow.pnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                {hRow.pnl >= 0 ? '+' : ''}${hRow.pnl.toFixed(2)}
+                                              </td>
+                                            </tr>
+                                          );
+                                        })}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </React.Fragment>
                         );
                       })}
                     </tbody>
