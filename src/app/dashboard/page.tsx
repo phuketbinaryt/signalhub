@@ -449,6 +449,25 @@ function Dashboard() {
       .map(([key, val]) => ({ hour: key, ...val }));
   }, [allStrategyTrades, expandedDay]);
 
+  const weekdayPnl = useMemo(() => {
+    if (selectedStrategy === 'all' || allStrategyTrades.length === 0) return [];
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const grouped: Record<number, { pnl: number; trades: number; wins: number; losses: number }> = {};
+    allStrategyTrades.forEach((t: any) => {
+      const day = new Date(t.closedAt).getDay();
+      if (!grouped[day]) grouped[day] = { pnl: 0, trades: 0, wins: 0, losses: 0 };
+      grouped[day].pnl += t.pnl;
+      grouped[day].trades++;
+      if (t.pnl > 0) grouped[day].wins++;
+      else if (t.pnl < 0) grouped[day].losses++;
+    });
+    // Order: Monday(1) through Friday(5), then Sunday(0) and Saturday(6) if they exist
+    const order = [1, 2, 3, 4, 5, 0, 6];
+    return order
+      .filter(d => grouped[d])
+      .map(d => ({ day: dayNames[d], ...grouped[d] }));
+  }, [allStrategyTrades, selectedStrategy]);
+
   const periods = [
     { value: 'daily', label: 'Session' },
     { value: 'previous_session', label: 'Prev Session' },
@@ -1012,6 +1031,52 @@ function Dashboard() {
                               </tr>
                             )}
                           </React.Fragment>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Weekday P&L - only when a specific strategy is selected */}
+            {selectedStrategy !== 'all' && weekdayPnl.length > 0 && (
+              <div className="bg-[#111111] border border-[#222] rounded-xl overflow-hidden mb-8">
+                <div className="px-6 py-4 border-b border-[#222]">
+                  <h2 className="text-lg font-semibold text-white">P&L by Weekday</h2>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-[#222]">
+                        <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Day</th>
+                        <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Trades</th>
+                        <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">W/L</th>
+                        <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Win Rate</th>
+                        <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">P&L</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {weekdayPnl.map((row) => {
+                        const winRate = row.trades > 0 ? ((row.wins / row.trades) * 100) : 0;
+                        return (
+                          <tr key={row.day} className="border-b border-[#1a1a1a] hover:bg-[#1a1a1a] transition-colors">
+                            <td className="px-6 py-4 text-white font-medium">{row.day}</td>
+                            <td className="px-6 py-4 text-white">{row.trades}</td>
+                            <td className="px-6 py-4">
+                              <span className="text-emerald-400">{row.wins}</span>
+                              <span className="text-gray-600">/</span>
+                              <span className="text-red-400">{row.losses}</span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className={`text-sm ${winRate >= 50 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                {winRate.toFixed(1)}%
+                              </span>
+                            </td>
+                            <td className={`px-6 py-4 font-medium ${row.pnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                              {row.pnl >= 0 ? '+' : ''}${row.pnl.toFixed(2)}
+                            </td>
+                          </tr>
                         );
                       })}
                     </tbody>
