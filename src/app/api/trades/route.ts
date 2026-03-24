@@ -33,51 +33,79 @@ export async function GET(request: NextRequest) {
       let startDate = new Date();
       let endDate: Date | undefined;
 
+      // Helper: get NY time components from a UTC date
+      function getNYParts(date: Date) {
+        const parts = new Intl.DateTimeFormat('en-US', {
+          timeZone: 'America/New_York',
+          year: 'numeric', month: '2-digit', day: '2-digit',
+          hour: '2-digit', minute: '2-digit', second: '2-digit',
+          hour12: false,
+        }).formatToParts(date);
+        const get = (type: string) => parseInt(parts.find(p => p.type === type)?.value || '0');
+        return { year: get('year'), month: get('month'), day: get('day'), hour: get('hour'), minute: get('minute') };
+      }
+
+      // Helper: create a UTC date from NY time components
+      // Uses a binary search approach: create a date, check its NY representation, adjust
+      function fromNY(year: number, month: number, day: number, hour: number): Date {
+        // Start with a rough UTC estimate
+        const rough = new Date(Date.UTC(year, month - 1, day, hour));
+        const roughParts = getNYParts(rough);
+        const diffHours = rough.getUTCHours() - roughParts.hour;
+        // Adjust: if NY hour doesn't match, shift by the offset
+        const adjusted = new Date(Date.UTC(year, month - 1, day, hour + diffHours));
+        return adjusted;
+      }
+
       switch (period) {
         case 'daily': {
-          // Trading session: 18:00 NY time to 17:00 NY time
-          // Convert current time to NY timezone
-          const nyTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
-          const currentHour = nyTime.getHours();
-          const currentMinutes = nyTime.getMinutes();
+          // Trading session: 18:00 NY to 16:00 NY next day
+          const ny = getNYParts(now);
+          const totalMinutes = ny.hour * 60 + ny.minute;
 
-          // Create session start date in NY timezone
-          const sessionStart = new Date(nyTime);
-          sessionStart.setHours(18, 0, 0, 0);
-
-          // If current time is before 17:00 NY, session started yesterday at 18:00
-          // If current time is after 17:00 NY, session started today at 18:00
-          if (currentHour < 17 || (currentHour === 17 && currentMinutes === 0)) {
-            sessionStart.setDate(sessionStart.getDate() - 1);
+          // Before 16:00 NY → session started yesterday at 18:00
+          // Between 16:00-17:59 NY → session hasn't started yet, show previous session (yesterday 18:00)
+          // 18:00+ NY → session started today at 18:00
+          if (totalMinutes < 18 * 60) {
+            // Before 18:00 NY: current session started yesterday at 18:00
+            const yesterday = new Date(now);
+            yesterday.setDate(yesterday.getDate() - 1);
+            const nyYesterday = getNYParts(yesterday);
+            startDate = fromNY(nyYesterday.year, nyYesterday.month, nyYesterday.day, 18);
+          } else {
+            // 18:00+ NY: current session started today at 18:00
+            startDate = fromNY(ny.year, ny.month, ny.day, 18);
           }
-
-          // Convert back to UTC for database query
-          startDate = new Date(sessionStart.toLocaleString('en-US', { timeZone: 'UTC' }));
+          // End is 16:00 NY the day after session start
+          const nextDay = new Date(startDate.getTime() + 24 * 60 * 60 * 1000);
+          const nyNext = getNYParts(nextDay);
+          endDate = fromNY(nyNext.year, nyNext.month, nyNext.day, 16);
           break;
         }
         case 'previous_session': {
-          // Previous trading session: goes back one full session
-          const nyTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
-          const currentHour = nyTime.getHours();
-          const currentMinutes = nyTime.getMinutes();
+          // Previous trading session
+          const ny = getNYParts(now);
+          const totalMinutes = ny.hour * 60 + ny.minute;
 
-          // Calculate current session start
-          const currentSessionStart = new Date(nyTime);
-          currentSessionStart.setHours(18, 0, 0, 0);
-          if (currentHour < 17 || (currentHour === 17 && currentMinutes === 0)) {
-            currentSessionStart.setDate(currentSessionStart.getDate() - 1);
+          let currentSessionStart: Date;
+          if (totalMinutes < 18 * 60) {
+            const yesterday = new Date(now);
+            yesterday.setDate(yesterday.getDate() - 1);
+            const nyYesterday = getNYParts(yesterday);
+            currentSessionStart = fromNY(nyYesterday.year, nyYesterday.month, nyYesterday.day, 18);
+          } else {
+            currentSessionStart = fromNY(ny.year, ny.month, ny.day, 18);
           }
 
-          // Previous session start is 24 hours before current session start
-          const prevSessionStart = new Date(currentSessionStart);
-          prevSessionStart.setDate(prevSessionStart.getDate() - 1);
+          // Previous session: one day before current session
+          const prevStart = new Date(currentSessionStart.getTime() - 24 * 60 * 60 * 1000);
+          const nyPrev = getNYParts(prevStart);
+          startDate = fromNY(nyPrev.year, nyPrev.month, nyPrev.day, 18);
 
-          // Previous session end is current session start
-          const prevSessionEnd = new Date(currentSessionStart);
-
-          // Convert to UTC for database query
-          startDate = new Date(prevSessionStart.toLocaleString('en-US', { timeZone: 'UTC' }));
-          endDate = new Date(prevSessionEnd.toLocaleString('en-US', { timeZone: 'UTC' }));
+          // Ends at 16:00 NY the next day
+          const prevNextDay = new Date(startDate.getTime() + 24 * 60 * 60 * 1000);
+          const nyPrevNext = getNYParts(prevNextDay);
+          endDate = fromNY(nyPrevNext.year, nyPrevNext.month, nyPrevNext.day, 16);
           break;
         }
         case 'weekly':

@@ -235,7 +235,7 @@ export default function TradeTable({ trades, onTradeUpdate }: TradeTableProps) {
                     )}
                   </td>
                   <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(trade.openedAt).toLocaleDateString()}
+                    {new Date(trade.openedAt).toLocaleDateString('en-US', { timeZone: 'America/New_York' })}
                   </td>
                   <td className="px-3 py-3 whitespace-nowrap">
                     <button

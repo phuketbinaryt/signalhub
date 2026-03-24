@@ -376,7 +376,7 @@ function Dashboard() {
   const plOverTimeData = trades
     .filter((t: any) => t.status === 'closed' && t.closedAt)
     .map((t: any) => ({
-      date: new Date(t.closedAt).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' }),
+      date: new Date(t.closedAt).toLocaleDateString('en-US', { timeZone: 'America/New_York', month: 'numeric', day: 'numeric' }),
       pnl: t.pnl || 0,
     }))
     .slice(0, 7)
@@ -393,13 +393,32 @@ function Dashboard() {
     { name: 'Losses', value: stats?.losingTrades || 0, count: stats?.losingTrades || 0, total: stats?.closedTrades || 1 },
   ];
 
+  // Helper to get date parts in NY timezone
+  const toNY = (dateStr: string) => {
+    const d = new Date(dateStr);
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/New_York',
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', weekday: 'short',
+      hour12: false,
+    }).formatToParts(d);
+    const get = (type: string) => parts.find(p => p.type === type)?.value || '';
+    return {
+      year: get('year'),
+      month: get('month'),
+      day: get('day'),
+      hour: get('hour'),
+      weekday: get('weekday'),
+    };
+  };
+
   // Monthly and daily P&L breakdowns (computed from full strategy trades fetch)
   const monthlyPnl = useMemo(() => {
     if (selectedStrategy === 'all' || allStrategyTrades.length === 0) return [];
     const grouped: Record<string, { pnl: number; trades: number; wins: number; losses: number }> = {};
     allStrategyTrades.forEach((t: any) => {
-      const d = new Date(t.closedAt);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const ny = toNY(t.closedAt);
+      const key = `${ny.year}-${ny.month}`;
       if (!grouped[key]) grouped[key] = { pnl: 0, trades: 0, wins: 0, losses: 0 };
       grouped[key].pnl += t.pnl;
       grouped[key].trades++;
@@ -415,8 +434,8 @@ function Dashboard() {
     if (selectedStrategy === 'all' || allStrategyTrades.length === 0) return [];
     const grouped: Record<string, { pnl: number; trades: number; wins: number; losses: number }> = {};
     allStrategyTrades.forEach((t: any) => {
-      const d = new Date(t.closedAt);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const ny = toNY(t.closedAt);
+      const key = `${ny.year}-${ny.month}-${ny.day}`;
       if (!grouped[key]) grouped[key] = { pnl: 0, trades: 0, wins: 0, losses: 0 };
       grouped[key].pnl += t.pnl;
       grouped[key].trades++;
@@ -432,11 +451,10 @@ function Dashboard() {
     if (!expandedDay || allStrategyTrades.length === 0) return [];
     const grouped: Record<string, { pnl: number; trades: number; wins: number; losses: number; tradesList: any[] }> = {};
     allStrategyTrades.forEach((t: any) => {
-      const d = new Date(t.closedAt);
-      const dayKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const ny = toNY(t.closedAt);
+      const dayKey = `${ny.year}-${ny.month}-${ny.day}`;
       if (dayKey !== expandedDay) return;
-      const hour = d.getHours();
-      const hourKey = `${String(hour).padStart(2, '0')}:00`;
+      const hourKey = `${ny.hour}:00`;
       if (!grouped[hourKey]) grouped[hourKey] = { pnl: 0, trades: 0, wins: 0, losses: 0, tradesList: [] };
       grouped[hourKey].pnl += t.pnl;
       grouped[hourKey].trades++;
@@ -451,10 +469,12 @@ function Dashboard() {
 
   const weekdayPnl = useMemo(() => {
     if (selectedStrategy === 'all' || allStrategyTrades.length === 0) return [];
+    const weekdayMap: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
     const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const grouped: Record<number, { pnl: number; trades: number; wins: number; losses: number }> = {};
     allStrategyTrades.forEach((t: any) => {
-      const day = new Date(t.closedAt).getDay();
+      const ny = toNY(t.closedAt);
+      const day = weekdayMap[ny.weekday] ?? 0;
       if (!grouped[day]) grouped[day] = { pnl: 0, trades: 0, wins: 0, losses: 0 };
       grouped[day].pnl += t.pnl;
       grouped[day].trades++;
@@ -805,7 +825,7 @@ function Dashboard() {
                           {trade.pnlPercent ? `${trade.pnlPercent >= 0 ? '+' : ''}${trade.pnlPercent.toFixed(2)}%` : '-'}
                         </td>
                         <td className="px-2 py-3 text-sm text-gray-400 whitespace-nowrap">
-                          {new Date(trade.openedAt).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' })}
+                          {new Date(trade.openedAt).toLocaleDateString('en-US', { timeZone: 'America/New_York', month: 'numeric', day: 'numeric', year: '2-digit' })}
                         </td>
                         <td className="px-2 py-3 text-sm text-gray-400 whitespace-nowrap">
                           {new Date(trade.openedAt).toLocaleTimeString('en-US', {
@@ -956,8 +976,8 @@ function Dashboard() {
                     </thead>
                     <tbody>
                       {dailyPnl.map((row) => {
-                        const d = new Date(row.date + 'T00:00:00');
-                        const label = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+                        const d = new Date(row.date + 'T12:00:00');
+                        const label = d.toLocaleDateString('en-US', { timeZone: 'America/New_York', weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
                         const winRate = row.trades > 0 ? ((row.wins / row.trades) * 100) : 0;
                         const isExpanded = expandedDay === row.date;
                         return (
