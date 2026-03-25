@@ -8,6 +8,8 @@ interface Trade {
   ticker: string;
   direction: string;
   entryPrice: number;
+  stopLoss?: number | null;
+  takeProfit?: number | null;
   strategy: string | null;
   openedAt: string;
   quantity: number;
@@ -71,8 +73,11 @@ export function OpenTradesTable({ trades, getTickerColor }: OpenTradesTableProps
                 <th className="text-left p-4 text-sm font-medium text-muted-foreground">Ticker</th>
                 <th className="text-left p-4 text-sm font-medium text-muted-foreground">Direction</th>
                 <th className="text-left p-4 text-sm font-medium text-muted-foreground">Entry</th>
+                <th className="text-left p-4 text-sm font-medium text-muted-foreground">SL</th>
+                <th className="text-left p-4 text-sm font-medium text-muted-foreground">TP</th>
                 <th className="text-left p-4 text-sm font-medium text-muted-foreground">Position Size</th>
                 <th className="text-left p-4 text-sm font-medium text-muted-foreground">Strategy</th>
+                <th className="text-left p-4 text-sm font-medium text-muted-foreground">Opened</th>
                 <th className="text-left p-4 text-sm font-medium text-muted-foreground">Time Open</th>
               </tr>
             </thead>
@@ -108,11 +113,27 @@ export function OpenTradesTable({ trades, getTickerColor }: OpenTradesTableProps
                   <td className="p-4 font-mono text-sm">
                     ${formatPrice(trade.entryPrice, trade.ticker)}
                   </td>
+                  <td className="p-4 font-mono text-sm text-muted-foreground">
+                    {trade.stopLoss ? `$${formatPrice(trade.stopLoss, trade.ticker)}` : '-'}
+                  </td>
+                  <td className="p-4 font-mono text-sm text-muted-foreground">
+                    {trade.takeProfit ? `$${formatPrice(trade.takeProfit, trade.ticker)}` : '-'}
+                  </td>
                   <td className="p-4 text-sm">
                     {trade.quantity}
                   </td>
                   <td className="p-4 text-sm text-muted-foreground">
                     {trade.strategy || '-'}
+                  </td>
+                  <td className="p-4 text-sm text-muted-foreground whitespace-nowrap">
+                    {new Date(trade.openedAt).toLocaleString('en-US', {
+                      timeZone: 'America/New_York',
+                      month: 'numeric',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      hour12: true,
+                    })}
                   </td>
                   <td className="p-4">
                     <div className="flex items-center gap-2">
