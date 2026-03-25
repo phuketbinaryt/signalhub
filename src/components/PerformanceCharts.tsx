@@ -61,9 +61,9 @@ const CustomPieTooltip = ({ active, payload }: any) => {
 
 export function PerformanceCharts({ plOverTimeData, tickerPerformanceData, winLossData }: PerformanceChartsProps) {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-6">
       {/* P&L Over Time */}
-      <div className="bg-card border border-border rounded-lg p-6">
+      <div className="bg-card border border-border rounded-lg p-3 sm:p-6">
         <h3 className="text-lg font-semibold mb-4">P&L Over Time</h3>
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={plOverTimeData}>
@@ -92,7 +92,7 @@ export function PerformanceCharts({ plOverTimeData, tickerPerformanceData, winLo
       </div>
 
       {/* Performance by Ticker */}
-      <div className="bg-card border border-border rounded-lg p-6">
+      <div className="bg-card border border-border rounded-lg p-3 sm:p-6">
         <h3 className="text-lg font-semibold mb-4">Performance by Ticker</h3>
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={tickerPerformanceData}>
@@ -122,7 +122,7 @@ export function PerformanceCharts({ plOverTimeData, tickerPerformanceData, winLo
       </div>
 
       {/* Win/Loss Distribution */}
-      <div className="bg-card border border-border rounded-lg p-6">
+      <div className="bg-card border border-border rounded-lg p-3 sm:p-6">
         <h3 className="text-lg font-semibold mb-4">Win/Loss Distribution</h3>
         <ResponsiveContainer width="100%" height={300}>
           <PieChart>
@@ -160,7 +160,7 @@ export function PerformanceCharts({ plOverTimeData, tickerPerformanceData, winLo
       </div>
 
       {/* Trade Volume */}
-      <div className="bg-card border border-border rounded-lg p-6">
+      <div className="bg-card border border-border rounded-lg p-3 sm:p-6">
         <h3 className="text-lg font-semibold mb-4">Trade Volume by Ticker</h3>
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={tickerPerformanceData} layout="vertical">

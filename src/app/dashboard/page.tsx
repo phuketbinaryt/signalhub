@@ -543,26 +543,25 @@ function Dashboard() {
       <PWAInstallPrompt />
       {/* Header */}
       <header className="border-b border-[#222] bg-[#0a0a0a]">
-        <div className="container mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="container mx-auto px-3 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Image
               src="/logo/logo.png"
               alt="Logo"
               width={200}
               height={200}
-              className="object-contain"
+              className="object-contain w-[120px] sm:w-[200px]"
               priority
             />
           </div>
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-gray-400">State:</span>
+          <div className="flex items-center gap-1.5 sm:gap-3 flex-wrap justify-end">
             <select
               value={statusFilter}
               onChange={(e) => {
                 setStatusFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="bg-[#1a1a1a] border border-[#333] rounded px-3 py-1.5 text-sm text-white focus:outline-none focus:border-primary/50"
+              className="bg-[#1a1a1a] border border-[#333] rounded px-2 sm:px-3 py-1.5 text-xs sm:text-sm text-white focus:outline-none focus:border-primary/50"
             >
               <option value="all">All</option>
               <option value="open">Open</option>
@@ -578,7 +577,7 @@ function Dashboard() {
             <Button
               onClick={() => router.push('/strategies')}
               variant="outline"
-              className="gap-2 border-[#333] hover:bg-[#1a1a1a]"
+              className="gap-1 sm:gap-2 border-[#333] hover:bg-[#1a1a1a] px-2 sm:px-4"
             >
               <BarChart3 className="w-4 h-4" />
               <span className="hidden sm:inline">Strategies</span>
@@ -586,30 +585,29 @@ function Dashboard() {
             <Button
               onClick={() => router.push('/settings')}
               variant="outline"
-              className="gap-2 border-[#333] hover:bg-[#1a1a1a]"
+              className="gap-1 sm:gap-2 border-[#333] hover:bg-[#1a1a1a] px-2 sm:px-4"
             >
               <Settings className="w-4 h-4" />
               <span className="hidden sm:inline">Settings</span>
             </Button>
-            <Button onClick={fetchTrades} className="bg-primary hover:bg-primary/90">
+            <Button onClick={fetchTrades} className="bg-primary hover:bg-primary/90 px-2 sm:px-4 text-xs sm:text-sm">
               Refresh
             </Button>
           </div>
         </div>
       </header>
 
-      <div className="container mx-auto px-6 py-8">
+      <div className="container mx-auto px-3 sm:px-6 py-4 sm:py-8">
         {/* Filters Section */}
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-gray-400">Ticker:</span>
+        <div className="flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center justify-between gap-3 sm:gap-4 mb-6 sm:mb-8">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
             <select
               value={selectedTicker}
               onChange={(e) => {
                 setSelectedTicker(e.target.value);
                 setCurrentPage(1);
               }}
-              className="bg-[#1a1a1a] border border-[#333] rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:border-primary/50 min-w-[120px]"
+              className="bg-[#1a1a1a] border border-[#333] rounded-lg px-3 py-2 text-xs sm:text-sm text-white focus:outline-none focus:border-primary/50 flex-1 sm:flex-none sm:min-w-[120px]"
             >
               <option value="all">All Tickers</option>
               {tickers.map((ticker: string) => (
@@ -619,14 +617,13 @@ function Dashboard() {
               ))}
             </select>
 
-            <span className="text-sm text-gray-400">Strategy:</span>
             <select
               value={selectedStrategy}
               onChange={(e) => {
                 setSelectedStrategy(e.target.value);
                 setCurrentPage(1);
               }}
-              className="bg-[#1a1a1a] border border-[#333] rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:border-primary/50 min-w-[120px]"
+              className="bg-[#1a1a1a] border border-[#333] rounded-lg px-3 py-2 text-xs sm:text-sm text-white focus:outline-none focus:border-primary/50 flex-1 sm:flex-none sm:min-w-[120px]"
             >
               <option value="all">All Strategies</option>
               {strategies.map((strategy: string) => (
@@ -637,7 +634,7 @@ function Dashboard() {
             </select>
           </div>
 
-          <div className="flex items-center gap-1 bg-[#1a1a1a] rounded-lg p-1">
+          <div className="flex items-center gap-0.5 sm:gap-1 bg-[#1a1a1a] rounded-lg p-1 w-full sm:w-auto overflow-x-auto">
             {periods.map((period) => (
               <button
                 key={period.value}
@@ -645,7 +642,7 @@ function Dashboard() {
                   setTimePeriod(period.value);
                   setCurrentPage(1);
                 }}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                className={`px-2 sm:px-4 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm font-medium transition-colors whitespace-nowrap flex-1 sm:flex-none ${
                   timePeriod === period.value
                     ? 'bg-primary text-white'
                     : 'text-gray-400 hover:text-white hover:bg-[#2a2a2a]'
@@ -658,7 +655,7 @@ function Dashboard() {
         </div>
 
         {/* Stats Grid */}
-        <div className={`grid grid-cols-1 md:grid-cols-2 ${selectedStrategy !== 'all' && strategyStatsMap[selectedStrategy] ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-4 mb-8`}>
+        <div className={`grid grid-cols-2 md:grid-cols-2 ${selectedStrategy !== 'all' && strategyStatsMap[selectedStrategy] ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-3 sm:gap-4 mb-6 sm:mb-8`}>
           {/* Total Trades */}
           <div className="bg-[#111111] border border-[#222] rounded-xl p-5">
             <div className="flex items-start justify-between">
@@ -667,7 +664,7 @@ function Dashboard() {
                   <Zap className="w-5 h-5 text-teal-400" />
                 </div>
                 <div className="text-sm text-gray-400 mb-1">Total Trades</div>
-                <div className="text-3xl font-bold text-white">{stats?.totalTrades || 0}</div>
+                <div className="text-xl sm:text-3xl font-bold text-white">{stats?.totalTrades || 0}</div>
                 <div className="text-xs text-gray-500 mt-1">
                   {stats?.openTrades || 0} open / {stats?.closedTrades || 0} closed
                 </div>
@@ -683,7 +680,7 @@ function Dashboard() {
                   <DollarSign className="w-5 h-5 text-teal-400" />
                 </div>
                 <div className="text-sm text-gray-400 mb-1">Total P&L</div>
-                <div className={`text-3xl font-bold ${(stats?.totalPnl || 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                <div className={`text-xl sm:text-3xl font-bold ${(stats?.totalPnl || 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                   ${(stats?.totalPnl || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
               </div>
@@ -708,7 +705,7 @@ function Dashboard() {
                   <Target className="w-5 h-5 text-teal-400" />
                 </div>
                 <div className="text-sm text-gray-400 mb-1">Win Rate</div>
-                <div className="text-3xl font-bold text-white">{(stats?.winRate || 0).toFixed(1)}%</div>
+                <div className="text-xl sm:text-3xl font-bold text-white">{(stats?.winRate || 0).toFixed(1)}%</div>
                 <div className="text-xs text-gray-500 mt-1">
                   {stats?.winningTrades || 0}W / {stats?.losingTrades || 0}L
                   {selectedStrategy !== 'all' && strategyStatsMap[selectedStrategy]?.avgRR > 0 && (
@@ -729,7 +726,7 @@ function Dashboard() {
                   <TrendingUp className="w-5 h-5 text-teal-400" />
                 </div>
                 <div className="text-sm text-gray-400 mb-1">Avg Win</div>
-                <div className="text-3xl font-bold text-emerald-400">${(stats?.avgWin || 0).toFixed(2)}</div>
+                <div className="text-xl sm:text-3xl font-bold text-emerald-400">${(stats?.avgWin || 0).toFixed(2)}</div>
                 <div className="text-xs text-red-400 mt-1">
                   Avg Loss: -${Math.abs(stats?.avgLoss || 0).toFixed(2)}
                 </div>
@@ -746,7 +743,7 @@ function Dashboard() {
                     <TrendingDown className="w-5 h-5 text-red-400" />
                   </div>
                   <div className="text-sm text-gray-400 mb-1">Max Drawdown</div>
-                  <div className="text-3xl font-bold text-red-400">
+                  <div className="text-xl sm:text-3xl font-bold text-red-400">
                     -${strategyStatsMap[selectedStrategy].maxDrawdown.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                   <div className="text-xs text-gray-500 mt-1">
@@ -772,8 +769,8 @@ function Dashboard() {
 
             {/* Recent Trades Table */}
             <div className="bg-[#111111] border border-[#222] rounded-xl overflow-hidden mb-8">
-              <div className="px-6 py-4 border-b border-[#222] flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-white">Recent Trades</h2>
+              <div className="px-3 sm:px-6 py-3 sm:py-4 border-b border-[#222] flex items-center justify-between">
+                <h2 className="text-base sm:text-lg font-semibold text-white">Recent Trades</h2>
                 {selectedStrategy === 'all' && (
                   <StrategyVisibilityFilter
                     strategies={allStrategies}
@@ -894,7 +891,7 @@ function Dashboard() {
 
               {/* Pagination Controls */}
               {tradeData && tradeData.pagination && (
-                <div className="px-6 py-4 border-t border-[#222] flex items-center justify-between">
+                <div className="px-3 sm:px-6 py-3 sm:py-4 border-t border-[#222] flex items-center justify-between">
                   <div className="text-sm text-gray-500">
                     Showing {((currentPage - 1) * TRADES_PER_PAGE) + 1} to{' '}
                     {Math.min(currentPage * TRADES_PER_PAGE, tradeData.pagination.total)} of{' '}
@@ -954,18 +951,18 @@ function Dashboard() {
             {/* Monthly P&L - only when a specific strategy is selected */}
             {selectedStrategy !== 'all' && monthlyPnl.length > 0 && (
               <div className="bg-[#111111] border border-[#222] rounded-xl overflow-hidden mb-8">
-                <div className="px-6 py-4 border-b border-[#222]">
-                  <h2 className="text-lg font-semibold text-white">Monthly P&L</h2>
+                <div className="px-3 sm:px-6 py-3 sm:py-4 border-b border-[#222]">
+                  <h2 className="text-base sm:text-lg font-semibold text-white">Monthly P&L</h2>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-[#222]">
-                        <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Month</th>
-                        <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Trades</th>
-                        <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">W/L</th>
-                        <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Win Rate</th>
-                        <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">P&L</th>
+                        <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Month</th>
+                        <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Trades</th>
+                        <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs text-gray-500 uppercase tracking-wider">W/L</th>
+                        <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Win Rate</th>
+                        <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs text-gray-500 uppercase tracking-wider">P&L</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -975,19 +972,19 @@ function Dashboard() {
                         const winRate = row.trades > 0 ? ((row.wins / row.trades) * 100) : 0;
                         return (
                           <tr key={row.month} className="border-b border-[#1a1a1a] hover:bg-[#1a1a1a] transition-colors">
-                            <td className="px-6 py-4 text-white font-medium">{label}</td>
-                            <td className="px-6 py-4 text-white">{row.trades}</td>
-                            <td className="px-6 py-4">
+                            <td className="px-3 sm:px-6 py-3 sm:py-4 text-white font-medium text-sm">{label}</td>
+                            <td className="px-3 sm:px-6 py-3 sm:py-4 text-white text-sm">{row.trades}</td>
+                            <td className="px-3 sm:px-6 py-3 sm:py-4">
                               <span className="text-emerald-400">{row.wins}</span>
                               <span className="text-gray-600">/</span>
                               <span className="text-red-400">{row.losses}</span>
                             </td>
-                            <td className="px-6 py-4">
+                            <td className="px-3 sm:px-6 py-3 sm:py-4">
                               <span className={`text-sm ${winRate >= 50 ? 'text-emerald-400' : 'text-red-400'}`}>
                                 {winRate.toFixed(1)}%
                               </span>
                             </td>
-                            <td className={`px-6 py-4 font-medium ${row.pnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                            <td className={`px-3 sm:px-6 py-3 sm:py-4 font-medium text-sm ${row.pnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                               {row.pnl >= 0 ? '+' : ''}${row.pnl.toFixed(2)}
                             </td>
                           </tr>
@@ -1002,18 +999,18 @@ function Dashboard() {
             {/* Daily P&L - only when a specific strategy is selected */}
             {selectedStrategy !== 'all' && dailyPnl.length > 0 && (
               <div className="bg-[#111111] border border-[#222] rounded-xl overflow-hidden mb-8">
-                <div className="px-6 py-4 border-b border-[#222]">
-                  <h2 className="text-lg font-semibold text-white">Daily P&L</h2>
+                <div className="px-3 sm:px-6 py-3 sm:py-4 border-b border-[#222]">
+                  <h2 className="text-base sm:text-lg font-semibold text-white">Daily P&L</h2>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-[#222]">
-                        <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Date</th>
-                        <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Trades</th>
-                        <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">W/L</th>
-                        <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Win Rate</th>
-                        <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">P&L</th>
+                        <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Date</th>
+                        <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Trades</th>
+                        <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs text-gray-500 uppercase tracking-wider">W/L</th>
+                        <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Win Rate</th>
+                        <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs text-gray-500 uppercase tracking-wider">P&L</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1028,24 +1025,24 @@ function Dashboard() {
                               className="border-b border-[#1a1a1a] hover:bg-[#1a1a1a] transition-colors cursor-pointer"
                               onClick={() => setExpandedDay(isExpanded ? null : row.date)}
                             >
-                              <td className="px-6 py-4 text-white font-medium">
+                              <td className="px-3 sm:px-6 py-3 sm:py-4 text-white font-medium text-sm">
                                 <span className="inline-flex items-center gap-2">
                                   <span className={`text-gray-500 text-xs transition-transform ${isExpanded ? 'rotate-90' : ''}`}>&#9654;</span>
                                   {label}
                                 </span>
                               </td>
-                              <td className="px-6 py-4 text-white">{row.trades}</td>
-                              <td className="px-6 py-4">
+                              <td className="px-3 sm:px-6 py-3 sm:py-4 text-white text-sm">{row.trades}</td>
+                              <td className="px-3 sm:px-6 py-3 sm:py-4">
                                 <span className="text-emerald-400">{row.wins}</span>
                                 <span className="text-gray-600">/</span>
                                 <span className="text-red-400">{row.losses}</span>
                               </td>
-                              <td className="px-6 py-4">
+                              <td className="px-3 sm:px-6 py-3 sm:py-4">
                                 <span className={`text-sm ${winRate >= 50 ? 'text-emerald-400' : 'text-red-400'}`}>
                                   {winRate.toFixed(1)}%
                                 </span>
                               </td>
-                              <td className={`px-6 py-4 font-medium ${row.pnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                              <td className={`px-3 sm:px-6 py-3 sm:py-4 font-medium text-sm ${row.pnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                                 {row.pnl >= 0 ? '+' : ''}${row.pnl.toFixed(2)}
                               </td>
                             </tr>
@@ -1104,18 +1101,18 @@ function Dashboard() {
             {/* Weekday P&L - only when a specific strategy is selected */}
             {selectedStrategy !== 'all' && weekdayPnl.length > 0 && (
               <div className="bg-[#111111] border border-[#222] rounded-xl overflow-hidden mb-8">
-                <div className="px-6 py-4 border-b border-[#222]">
-                  <h2 className="text-lg font-semibold text-white">P&L by Weekday</h2>
+                <div className="px-3 sm:px-6 py-3 sm:py-4 border-b border-[#222]">
+                  <h2 className="text-base sm:text-lg font-semibold text-white">P&L by Weekday</h2>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-[#222]">
-                        <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Day</th>
-                        <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Trades</th>
-                        <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">W/L</th>
-                        <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Win Rate</th>
-                        <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">P&L</th>
+                        <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Day</th>
+                        <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Trades</th>
+                        <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs text-gray-500 uppercase tracking-wider">W/L</th>
+                        <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Win Rate</th>
+                        <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs text-gray-500 uppercase tracking-wider">P&L</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1123,19 +1120,19 @@ function Dashboard() {
                         const winRate = row.trades > 0 ? ((row.wins / row.trades) * 100) : 0;
                         return (
                           <tr key={row.day} className="border-b border-[#1a1a1a] hover:bg-[#1a1a1a] transition-colors">
-                            <td className="px-6 py-4 text-white font-medium">{row.day}</td>
-                            <td className="px-6 py-4 text-white">{row.trades}</td>
-                            <td className="px-6 py-4">
+                            <td className="px-3 sm:px-6 py-3 sm:py-4 text-white font-medium text-sm">{row.day}</td>
+                            <td className="px-3 sm:px-6 py-3 sm:py-4 text-white text-sm">{row.trades}</td>
+                            <td className="px-3 sm:px-6 py-3 sm:py-4">
                               <span className="text-emerald-400">{row.wins}</span>
                               <span className="text-gray-600">/</span>
                               <span className="text-red-400">{row.losses}</span>
                             </td>
-                            <td className="px-6 py-4">
+                            <td className="px-3 sm:px-6 py-3 sm:py-4">
                               <span className={`text-sm ${winRate >= 50 ? 'text-emerald-400' : 'text-red-400'}`}>
                                 {winRate.toFixed(1)}%
                               </span>
                             </td>
-                            <td className={`px-6 py-4 font-medium ${row.pnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                            <td className={`px-3 sm:px-6 py-3 sm:py-4 font-medium text-sm ${row.pnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                               {row.pnl >= 0 ? '+' : ''}${row.pnl.toFixed(2)}
                             </td>
                           </tr>
@@ -1158,27 +1155,27 @@ function Dashboard() {
 
             {/* By Ticker Table */}
             <div className="bg-[#111111] border border-[#222] rounded-xl overflow-hidden mb-8">
-              <div className="px-6 py-4 border-b border-[#222]">
-                <h2 className="text-lg font-semibold text-white">By Ticker</h2>
+              <div className="px-3 sm:px-6 py-3 sm:py-4 border-b border-[#222]">
+                <h2 className="text-base sm:text-lg font-semibold text-white">By Ticker</h2>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-[#222]">
-                      <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Ticker</th>
-                      <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Strategies</th>
-                      <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Total Trades</th>
-                      <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Open</th>
-                      <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Closed</th>
-                      <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">W/L</th>
-                      <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">P&L</th>
+                      <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Ticker</th>
+                      <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Strategies</th>
+                      <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Total Trades</th>
+                      <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Open</th>
+                      <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Closed</th>
+                      <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs text-gray-500 uppercase tracking-wider">W/L</th>
+                      <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs text-gray-500 uppercase tracking-wider">P&L</th>
                     </tr>
                   </thead>
                   <tbody>
                     {byTicker.map((ticker: any, index: number) => (
                       <tr key={index} className="border-b border-[#1a1a1a] hover:bg-[#1a1a1a] transition-colors">
-                        <td className="px-6 py-4 text-white font-medium">{ticker.ticker}</td>
-                        <td className="px-6 py-4">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-white font-medium text-sm">{ticker.ticker}</td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4">
                           <div className="flex flex-wrap gap-1">
                             {ticker.strategies && ticker.strategies.length > 0 ? (
                               ticker.strategies.map((strategy: string) => (
@@ -1198,10 +1195,10 @@ function Dashboard() {
                             )}
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-white">{ticker.totalTrades}</td>
-                        <td className="px-6 py-4 text-gray-400">{ticker.openTrades}</td>
-                        <td className="px-6 py-4 text-gray-400">{ticker.closedTrades}</td>
-                        <td className="px-6 py-4">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-white text-sm">{ticker.totalTrades}</td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-gray-400 text-sm">{ticker.openTrades}</td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-gray-400 text-sm">{ticker.closedTrades}</td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4">
                           <span className="text-emerald-400">{ticker.wins}</span>
                           <span className="text-gray-600">/</span>
                           <span className="text-red-400">{ticker.losses}</span>
@@ -1209,7 +1206,7 @@ function Dashboard() {
                             ({((ticker.wins / (ticker.wins + ticker.losses)) * 100 || 0).toFixed(1)}%)
                           </span>
                         </td>
-                        <td className={`px-6 py-4 font-medium ${ticker.totalPnl < 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+                        <td className={`px-3 sm:px-6 py-3 sm:py-4 font-medium text-sm ${ticker.totalPnl < 0 ? 'text-red-400' : 'text-emerald-400'}`}>
                           ${ticker.totalPnl.toFixed(2)}
                         </td>
                       </tr>
@@ -1221,21 +1218,21 @@ function Dashboard() {
 
             {/* By Strategy Table */}
             <div className="bg-[#111111] border border-[#222] rounded-xl overflow-hidden mb-8">
-              <div className="px-6 py-4 border-b border-[#222]">
-                <h2 className="text-lg font-semibold text-white">By Strategy</h2>
+              <div className="px-3 sm:px-6 py-3 sm:py-4 border-b border-[#222]">
+                <h2 className="text-base sm:text-lg font-semibold text-white">By Strategy</h2>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-[#222]">
-                      <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Strategy</th>
-                      <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Tickers</th>
-                      <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Trades</th>
-                      <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Contracts</th>
-                      <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Open</th>
-                      <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">W/L</th>
-                      <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Win Rate</th>
-                      <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">P&L</th>
+                      <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Strategy</th>
+                      <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Tickers</th>
+                      <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Trades</th>
+                      <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Contracts</th>
+                      <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Open</th>
+                      <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs text-gray-500 uppercase tracking-wider">W/L</th>
+                      <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs text-gray-500 uppercase tracking-wider">Win Rate</th>
+                      <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs text-gray-500 uppercase tracking-wider">P&L</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1253,10 +1250,10 @@ function Dashboard() {
                           }
                         }}
                       >
-                        <td className="px-6 py-4">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4">
                           <span className="text-white font-medium">{strat.strategy}</span>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4">
                           <div className="flex flex-wrap gap-1">
                             {strat.tickers && strat.tickers.length > 0 ? (
                               strat.tickers.map((ticker: string) => (
@@ -1272,15 +1269,15 @@ function Dashboard() {
                             )}
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-white">{strat.totalTrades}</td>
-                        <td className="px-6 py-4 text-cyan-400">{strat.totalContracts}</td>
-                        <td className="px-6 py-4 text-gray-400">{strat.openTrades}</td>
-                        <td className="px-6 py-4">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-white text-sm">{strat.totalTrades}</td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-cyan-400">{strat.totalContracts}</td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-gray-400 text-sm">{strat.openTrades}</td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4">
                           <span className="text-emerald-400">{strat.wins}</span>
                           <span className="text-gray-600">/</span>
                           <span className="text-red-400">{strat.losses}</span>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4">
                           <div className="flex items-center gap-2">
                             <div className="w-16 h-1.5 bg-[#222] rounded-full overflow-hidden">
                               <div
@@ -1305,7 +1302,7 @@ function Dashboard() {
                             </span>
                           </div>
                         </td>
-                        <td className={`px-6 py-4 font-medium ${strat.totalPnl < 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+                        <td className={`px-3 sm:px-6 py-3 sm:py-4 font-medium text-sm ${strat.totalPnl < 0 ? 'text-red-400' : 'text-emerald-400'}`}>
                           ${strat.totalPnl.toFixed(2)}
                         </td>
                       </tr>
