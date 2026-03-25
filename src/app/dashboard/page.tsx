@@ -1209,7 +1209,10 @@ function Dashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {byStrategy.map((strat: any, index: number) => (
+                    {byStrategy.filter((strat: any) =>
+                      !visibilityInitialized || selectedStrategy !== 'all' ||
+                      strat.strategy === '(No Strategy)' || visibleStrategies.includes(strat.strategy)
+                    ).map((strat: any, index: number) => (
                       <tr
                         key={index}
                         className="border-b border-[#1a1a1a] hover:bg-[#1a1a1a] transition-colors cursor-pointer"
