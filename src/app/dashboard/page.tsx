@@ -372,15 +372,27 @@ function Dashboard() {
   const tickers = Array.from(new Set(trades.map((t: any) => t.ticker)));
   const strategies = Array.from(new Set(trades.map((t: any) => t.strategy).filter(Boolean)));
 
-  // Prepare chart data
-  const plOverTimeData = trades
-    .filter((t: any) => t.status === 'closed' && t.closedAt)
-    .map((t: any) => ({
-      date: new Date(t.closedAt).toLocaleDateString('en-US', { timeZone: 'America/New_York', month: 'numeric', day: 'numeric' }),
-      pnl: t.pnl || 0,
-    }))
-    .slice(0, 7)
-    .reverse();
+  // Prepare chart data - use allStrategyTrades when a strategy is selected, otherwise use all trades
+  const chartTrades = selectedStrategy !== 'all' && allStrategyTrades.length > 0
+    ? allStrategyTrades
+    : trades.filter((t: any) => t.status === 'closed' && t.closedAt);
+
+  const plOverTimeData = useMemo(() => {
+    const dailyMap: Record<string, number> = {};
+    chartTrades.forEach((t: any) => {
+      if (!t.closedAt || !t.pnl) return;
+      const ny = toNY(t.closedAt);
+      const key = `${ny.month}/${ny.day}`;
+      dailyMap[key] = (dailyMap[key] || 0) + t.pnl;
+    });
+    const entries = Object.entries(dailyMap);
+    // Sort by date and take last 14 days
+    let cumulative = 0;
+    return entries.slice(-14).map(([date, pnl]) => {
+      cumulative += pnl;
+      return { date, pnl: parseFloat(cumulative.toFixed(2)) };
+    });
+  }, [chartTrades]);
 
   const tickerPerformanceData = byTicker.map((t: any) => ({
     ticker: t.ticker,

@@ -163,7 +163,7 @@ export function PerformanceCharts({ plOverTimeData, tickerPerformanceData, winLo
       <div className="bg-card border border-border rounded-lg p-6">
         <h3 className="text-lg font-semibold mb-4">Trade Volume by Ticker</h3>
         <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={tickerPerformanceData} layout="horizontal">
+          <BarChart data={tickerPerformanceData} layout="vertical">
             <CartesianGrid strokeDasharray="3 3" stroke="#2a2a2a" />
             <XAxis
               type="number"
