@@ -1285,36 +1285,6 @@ function Dashboard() {
               </div>
             </div>
 
-            {/* Webhook Configuration */}
-            <div className="bg-[#111111] border border-[#222] rounded-xl overflow-hidden">
-              <div className="px-6 py-4 border-b border-[#222]">
-                <h2 className="text-lg font-semibold text-white">Webhook Configuration</h2>
-                <p className="text-sm text-gray-400 mt-1">Use the following endpoint in your TradingView alerts:</p>
-              </div>
-              <div className="p-6 space-y-4">
-                <div>
-                  <label className="text-sm text-gray-400 mb-2 block">POST URL</label>
-                  <div className="bg-[#1a1a1a] border border-[#333] rounded p-3 font-mono text-sm text-white overflow-x-auto">
-                    {typeof window !== 'undefined' ? window.location.origin : ''}/api/webhook
-                  </div>
-                </div>
-                <div>
-                  <label className="text-sm text-gray-400 mb-2 block">Payload Format</label>
-                  <div className="bg-[#1a1a1a] border border-[#333] rounded p-4 font-mono text-sm overflow-x-auto">
-                    <pre className="text-gray-400">{`{
-  "secret": "your-webhook-secret",
-  "action": "entry",
-  "ticker": "MNQ",
-  "price": 150.50,
-  "direction": "long",
-  "takeProfit": 155.00,
-  "stopLoss": 148.00,
-  "quantity": 10
-}`}</pre>
-                  </div>
-                </div>
-              </div>
-            </div>
           </>
         )}
       </div>
