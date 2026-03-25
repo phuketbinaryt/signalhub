@@ -337,35 +337,38 @@ function Dashboard() {
     ? allTrades.filter((t: any) => !t.strategy || visibleStrategies.includes(t.strategy))
     : allTrades;
 
-  // Recompute stats and byTicker from filtered trades so they respect the strategy visibility filter
+  // Recompute stats from the API's byStrategy breakdown, filtered by visibility
+  // The API stats (rawStats) cover ALL strategies for the period — we filter by visibility here
   const stats = useMemo(() => {
     if (selectedStrategy !== 'all' || !visibilityInitialized) return rawStats;
-    const closedTrades = trades.filter((t: any) => t.status === 'closed');
-    const totalTrades = trades.length;
-    const totalClosed = closedTrades.length;
-    const totalOpen = trades.filter((t: any) => t.status === 'open').length;
-    const totalPnl = closedTrades.reduce((sum: number, t: any) => sum + (t.pnl || 0), 0);
-    const winningTrades = closedTrades.filter((t: any) => (t.pnl || 0) > 0);
-    const losingTrades = closedTrades.filter((t: any) => (t.pnl || 0) < 0);
-    const winRate = totalClosed > 0 ? (winningTrades.length / totalClosed) * 100 : 0;
-    const avgWin = winningTrades.length > 0 ? winningTrades.reduce((s: number, t: any) => s + (t.pnl || 0), 0) / winningTrades.length : 0;
-    const avgLoss = losingTrades.length > 0 ? losingTrades.reduce((s: number, t: any) => s + (t.pnl || 0), 0) / losingTrades.length : 0;
-    return { totalTrades, openTrades: totalOpen, closedTrades: totalClosed, totalPnl, winningTrades: winningTrades.length, losingTrades: losingTrades.length, winRate, avgWin, avgLoss };
-  }, [trades, rawStats, selectedStrategy, visibilityInitialized]);
+    const visible = byStrategy.filter((s: any) =>
+      s.strategy === '(No Strategy)' || visibleStrategies.includes(s.strategy)
+    );
+    if (visible.length === byStrategy.length) return rawStats; // No filtering needed
+    const totalTrades = visible.reduce((sum: number, s: any) => sum + s.totalTrades, 0);
+    const totalOpen = visible.reduce((sum: number, s: any) => sum + s.openTrades, 0);
+    const totalClosed = visible.reduce((sum: number, s: any) => sum + s.closedTrades, 0);
+    const totalPnl = visible.reduce((sum: number, s: any) => sum + s.totalPnl, 0);
+    const wins = visible.reduce((sum: number, s: any) => sum + s.wins, 0);
+    const losses = visible.reduce((sum: number, s: any) => sum + s.losses, 0);
+    const winRate = totalClosed > 0 ? (wins / totalClosed) * 100 : 0;
+    const avgWin = wins > 0 ? totalPnl > 0 ? totalPnl / wins : 0 : 0;
+    const avgLoss = losses > 0 ? (totalPnl - avgWin * wins) / losses : 0;
+    return { totalTrades, openTrades: totalOpen, closedTrades: totalClosed, totalPnl, winningTrades: wins, losingTrades: losses, winRate, avgWin, avgLoss };
+  }, [byStrategy, rawStats, selectedStrategy, visibilityInitialized, visibleStrategies]);
 
   const byTicker = useMemo(() => {
     if (selectedStrategy !== 'all' || !visibilityInitialized) return rawByTicker;
-    const grouped: Record<string, any> = {};
-    trades.forEach((t: any) => {
-      if (!grouped[t.ticker]) grouped[t.ticker] = { ticker: t.ticker, totalTrades: 0, openTrades: 0, closedTrades: 0, totalPnl: 0, wins: 0, losses: 0, strategies: new Set() };
-      const stat = grouped[t.ticker];
-      stat.totalTrades++;
-      if (t.strategy) stat.strategies.add(t.strategy);
-      if (t.status === 'open') { stat.openTrades++; }
-      else { stat.closedTrades++; stat.totalPnl += t.pnl || 0; if ((t.pnl || 0) > 0) stat.wins++; else if ((t.pnl || 0) < 0) stat.losses++; }
-    });
-    return Object.values(grouped).map((s: any) => ({ ...s, strategies: Array.from(s.strategies).sort() })).sort((a: any, b: any) => b.totalTrades - a.totalTrades);
-  }, [trades, rawByTicker, selectedStrategy, visibilityInitialized]);
+    // Recompute by filtering rawByTicker strategies to only visible ones
+    return rawByTicker
+      .map((t: any) => {
+        const filteredStrategies = (t.strategies || []).filter((s: string) => visibleStrategies.includes(s));
+        // If ticker has no visible strategies (and has strategies), exclude it
+        if (t.strategies && t.strategies.length > 0 && filteredStrategies.length === 0) return null;
+        return { ...t, strategies: filteredStrategies };
+      })
+      .filter(Boolean);
+  }, [rawByTicker, selectedStrategy, visibilityInitialized, visibleStrategies]);
 
   const handleSort = (column: 'time' | 'ticker') => {
     if (sortBy === column) {
