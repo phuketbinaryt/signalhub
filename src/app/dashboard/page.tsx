@@ -372,6 +372,25 @@ function Dashboard() {
   const tickers = Array.from(new Set(trades.map((t: any) => t.ticker)));
   const strategies = Array.from(new Set(trades.map((t: any) => t.strategy).filter(Boolean)));
 
+  // Helper to get date parts in NY timezone
+  const toNY = (dateStr: string) => {
+    const d = new Date(dateStr);
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/New_York',
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', weekday: 'short',
+      hour12: false,
+    }).formatToParts(d);
+    const get = (type: string) => parts.find(p => p.type === type)?.value || '';
+    return {
+      year: get('year'),
+      month: get('month'),
+      day: get('day'),
+      hour: get('hour'),
+      weekday: get('weekday'),
+    };
+  };
+
   // Prepare chart data - use allStrategyTrades when a strategy is selected, otherwise use all trades
   const chartTrades = selectedStrategy !== 'all' && allStrategyTrades.length > 0
     ? allStrategyTrades
@@ -404,25 +423,6 @@ function Dashboard() {
     { name: 'Wins', value: stats?.winningTrades || 0, count: stats?.winningTrades || 0, total: stats?.closedTrades || 1 },
     { name: 'Losses', value: stats?.losingTrades || 0, count: stats?.losingTrades || 0, total: stats?.closedTrades || 1 },
   ];
-
-  // Helper to get date parts in NY timezone
-  const toNY = (dateStr: string) => {
-    const d = new Date(dateStr);
-    const parts = new Intl.DateTimeFormat('en-US', {
-      timeZone: 'America/New_York',
-      year: 'numeric', month: '2-digit', day: '2-digit',
-      hour: '2-digit', minute: '2-digit', weekday: 'short',
-      hour12: false,
-    }).formatToParts(d);
-    const get = (type: string) => parts.find(p => p.type === type)?.value || '';
-    return {
-      year: get('year'),
-      month: get('month'),
-      day: get('day'),
-      hour: get('hour'),
-      weekday: get('weekday'),
-    };
-  };
 
   // Monthly and daily P&L breakdowns (computed from full strategy trades fetch)
   const monthlyPnl = useMemo(() => {
