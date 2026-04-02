@@ -390,7 +390,7 @@ export default function StrategiesPage() {
                       key={strategy.strategy}
                       className="border-b border-[#1a1a1a] hover:bg-[#1a1a1a] transition-colors cursor-pointer"
                       onClick={() => {
-                        router.push(`/dashboard?strategy=${encodeURIComponent(strategy.strategy)}`);
+                        router.push(`/dashboard/${encodeURIComponent(strategy.strategy)}`);
                       }}
                     >
                       <td className="px-4 py-4">
