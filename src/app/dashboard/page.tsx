@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useMemo, Suspense } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, Suspense } from 'react';
 import { PerformanceCharts } from '@/components/PerformanceCharts';
 import { Button } from '@/components/ui/button';
 import { ActionsDropdown } from '@/components/ActionsDropdown';
@@ -147,9 +147,49 @@ function Dashboard() {
     fetchAllStrategyTrades();
   }, [selectedStrategy]);
 
+  const fetchTrades = useCallback(async (silent = false) => {
+    try {
+      if (!silent) setLoading(true);
+      const params = new URLSearchParams();
+
+      if (selectedTicker !== 'all') {
+        params.append('ticker', selectedTicker);
+      }
+
+      if (selectedStrategy !== 'all') {
+        params.append('strategy', selectedStrategy);
+      }
+
+      if (statusFilter !== 'all') {
+        params.append('status', statusFilter);
+      }
+
+      if (timePeriod !== 'all') {
+        params.append('period', timePeriod);
+      }
+
+      // Add pagination params
+      params.append('limit', TRADES_PER_PAGE.toString());
+      params.append('offset', ((currentPage - 1) * TRADES_PER_PAGE).toString());
+
+      const response = await fetch(`/api/trades?${params.toString()}`);
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch trades');
+      }
+
+      const data = await response.json();
+      setTradeData(data);
+    } catch (error) {
+      console.error('Error fetching trades:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedTicker, selectedStrategy, statusFilter, timePeriod, currentPage]);
+
   useEffect(() => {
     fetchTrades();
-  }, [selectedTicker, selectedStrategy, statusFilter, timePeriod, currentPage]);
+  }, [fetchTrades]);
 
   // Fallback: Auto-refresh every 30 seconds (reliable for serverless)
   useEffect(() => {
@@ -159,7 +199,7 @@ function Dashboard() {
     }, 30000);
 
     return () => clearInterval(interval);
-  }, [selectedTicker, selectedStrategy, statusFilter, timePeriod, currentPage]);
+  }, [fetchTrades]);
 
   // Real-time updates via Server-Sent Events with auto-reconnect (bonus when it works)
   useEffect(() => {
@@ -228,47 +268,8 @@ function Dashboard() {
         eventSource.close();
       }
     };
-  }, [selectedTicker, selectedStrategy, statusFilter, timePeriod, currentPage, playSound]);
+  }, [fetchTrades, playSound]);
 
-  const fetchTrades = async (silent = false) => {
-    try {
-      if (!silent) setLoading(true);
-      const params = new URLSearchParams();
-
-      if (selectedTicker !== 'all') {
-        params.append('ticker', selectedTicker);
-      }
-
-      if (selectedStrategy !== 'all') {
-        params.append('strategy', selectedStrategy);
-      }
-
-      if (statusFilter !== 'all') {
-        params.append('status', statusFilter);
-      }
-
-      if (timePeriod !== 'all') {
-        params.append('period', timePeriod);
-      }
-
-      // Add pagination params
-      params.append('limit', TRADES_PER_PAGE.toString());
-      params.append('offset', ((currentPage - 1) * TRADES_PER_PAGE).toString());
-
-      const response = await fetch(`/api/trades?${params.toString()}`);
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch trades');
-      }
-
-      const data = await response.json();
-      setTradeData(data);
-    } catch (error) {
-      console.error('Error fetching trades:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleDelete = async (tradeId: number) => {
     if (!confirm('Are you sure you want to delete this trade?')) {
