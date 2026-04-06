@@ -91,7 +91,7 @@ function Dashboard() {
         const response = await fetch('/api/strategies');
         if (response.ok) {
           const data = await response.json();
-          const strategyNames = data.strategies.map((s: any) => s.strategy).filter(Boolean);
+          const strategyNames = data.strategies.map((s: any) => s.strategy).filter(Boolean).sort((a: string, b: string) => a.localeCompare(b));
           setAllStrategies(strategyNames);
 
           // Store strategy stats for the Max Drawdown card
@@ -155,7 +155,7 @@ function Dashboard() {
   useEffect(() => {
     const interval = setInterval(() => {
       console.log('🔄 Auto-refresh (30s polling)');
-      fetchTrades();
+      fetchTrades(true);
     }, 30000);
 
     return () => clearInterval(interval);
@@ -194,7 +194,7 @@ function Dashboard() {
             }
 
             // Refresh trades when new signal comes in
-            fetchTrades();
+            fetchTrades(true);
           }
         } catch (error) {
           console.error('Error parsing SSE message:', error);
@@ -230,9 +230,9 @@ function Dashboard() {
     };
   }, [selectedTicker, selectedStrategy, statusFilter, timePeriod, currentPage, playSound]);
 
-  const fetchTrades = async () => {
+  const fetchTrades = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const params = new URLSearchParams();
 
       if (selectedTicker !== 'all') {
@@ -403,7 +403,7 @@ function Dashboard() {
 
   // Get unique tickers and strategies for dropdowns
   const tickers = Array.from(new Set(trades.map((t: any) => t.ticker)));
-  const strategies = Array.from(new Set(trades.map((t: any) => t.strategy).filter(Boolean)));
+  const strategies = Array.from(new Set(trades.map((t: any) => t.strategy).filter(Boolean))).sort((a, b) => a.localeCompare(b));
 
   // Helper to get date parts in NY timezone
   const toNY = (dateStr: string) => {
