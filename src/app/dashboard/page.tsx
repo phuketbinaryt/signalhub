@@ -593,7 +593,7 @@ function Dashboard() {
               <Settings className="w-4 h-4" />
               <span className="hidden sm:inline">Settings</span>
             </Button>
-            <Button onClick={fetchTrades} className="bg-primary hover:bg-primary/90 px-2 sm:px-4 text-xs sm:text-sm">
+            <Button onClick={() => fetchTrades()} className="bg-primary hover:bg-primary/90 px-2 sm:px-4 text-xs sm:text-sm">
               Refresh
             </Button>
           </div>
