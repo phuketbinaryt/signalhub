@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { X } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 
 interface Trade {
@@ -18,10 +19,12 @@ interface Trade {
 interface OpenTradesTableProps {
   trades: Trade[];
   getTickerColor: (ticker: string) => string;
+  onClose?: (tradeId: number) => void;
 }
 
-export function OpenTradesTable({ trades, getTickerColor }: OpenTradesTableProps) {
+export function OpenTradesTable({ trades, getTickerColor, onClose }: OpenTradesTableProps) {
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [closingId, setClosingId] = useState<number | null>(null);
 
   // Update time every second for live timer
   useEffect(() => {
@@ -53,6 +56,29 @@ export function OpenTradesTable({ trades, getTickerColor }: OpenTradesTableProps
     }
   };
 
+  const handleClose = async (tradeId: number) => {
+    if (!confirm('Are you sure you want to close this trade?')) return;
+
+    setClosingId(tradeId);
+    try {
+      const response = await fetch(`/api/trades/${tradeId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'closed' }),
+      });
+
+      if (response.ok) {
+        onClose?.(tradeId);
+      } else {
+        console.error('Failed to close trade');
+      }
+    } catch (error) {
+      console.error('Error closing trade:', error);
+    } finally {
+      setClosingId(null);
+    }
+  };
+
   if (trades.length === 0) {
     return null; // Don't show section if no open trades
   }
@@ -79,6 +105,7 @@ export function OpenTradesTable({ trades, getTickerColor }: OpenTradesTableProps
                 <th className="text-left p-4 text-sm font-medium text-muted-foreground">Strategy</th>
                 <th className="text-left p-4 text-sm font-medium text-muted-foreground">Opened</th>
                 <th className="text-left p-4 text-sm font-medium text-muted-foreground">Time Open</th>
+                <th className="text-center p-4 text-sm font-medium text-muted-foreground w-16"></th>
               </tr>
             </thead>
             <tbody>
@@ -142,6 +169,20 @@ export function OpenTradesTable({ trades, getTickerColor }: OpenTradesTableProps
                         {getTimeOpen(trade.openedAt)}
                       </span>
                     </div>
+                  </td>
+                  <td className="p-4 text-center">
+                    <button
+                      onClick={() => handleClose(trade.id)}
+                      disabled={closingId === trade.id}
+                      className="p-1.5 rounded-md text-gray-500 hover:text-red-400 hover:bg-red-400/10 transition-colors disabled:opacity-50"
+                      title="Close trade"
+                    >
+                      {closingId === trade.id ? (
+                        <div className="w-4 h-4 border-2 border-gray-500 border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <X size={16} />
+                      )}
+                    </button>
                   </td>
                 </tr>
               ))}

@@ -794,6 +794,7 @@ function Dashboard() {
                 ? openTrades.filter((t: any) => !t.strategy || visibleStrategies.includes(t.strategy))
                 : openTrades}
               getTickerColor={getTickerColor}
+              onClose={() => { fetchTrades(true); fetchOpenTrades(); }}
             />
 
             {/* Recent Trades Table */}
