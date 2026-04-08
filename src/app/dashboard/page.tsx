@@ -70,6 +70,7 @@ function Dashboard() {
   const [visibleStrategies, setVisibleStrategies] = useState<string[]>([]);
   const [visibilityInitialized, setVisibilityInitialized] = useState(false);
   const [allStrategyTrades, setAllStrategyTrades] = useState<any[]>([]);
+  const [openTrades, setOpenTrades] = useState<any[]>([]);
   const [expandedDay, setExpandedDay] = useState<string | null>(null);
   const TRADES_PER_PAGE = 25;
 
@@ -147,6 +148,25 @@ function Dashboard() {
     fetchAllStrategyTrades();
   }, [selectedStrategy]);
 
+  // Fetch all open trades (not paginated)
+  const fetchOpenTrades = useCallback(async () => {
+    try {
+      const params = new URLSearchParams();
+      params.append('status', 'open');
+      params.append('limit', '1000');
+      if (selectedStrategy !== 'all') {
+        params.append('strategy', selectedStrategy);
+      }
+      const response = await fetch(`/api/trades?${params.toString()}`);
+      if (response.ok) {
+        const data = await response.json();
+        setOpenTrades(data.trades || []);
+      }
+    } catch (error) {
+      console.error('Error fetching open trades:', error);
+    }
+  }, [selectedStrategy]);
+
   const fetchTrades = useCallback(async (silent = false) => {
     try {
       if (!silent) setLoading(true);
@@ -189,17 +209,19 @@ function Dashboard() {
 
   useEffect(() => {
     fetchTrades();
-  }, [fetchTrades]);
+    fetchOpenTrades();
+  }, [fetchTrades, fetchOpenTrades]);
 
   // Fallback: Auto-refresh every 30 seconds (reliable for serverless)
   useEffect(() => {
     const interval = setInterval(() => {
       console.log('🔄 Auto-refresh (30s polling)');
       fetchTrades(true);
+      fetchOpenTrades();
     }, 30000);
 
     return () => clearInterval(interval);
-  }, [fetchTrades]);
+  }, [fetchTrades, fetchOpenTrades]);
 
   // Real-time updates via Server-Sent Events with auto-reconnect (bonus when it works)
   useEffect(() => {
@@ -235,6 +257,7 @@ function Dashboard() {
 
             // Refresh trades when new signal comes in
             fetchTrades(true);
+            fetchOpenTrades();
           }
         } catch (error) {
           console.error('Error parsing SSE message:', error);
@@ -268,7 +291,7 @@ function Dashboard() {
         eventSource.close();
       }
     };
-  }, [fetchTrades, playSound]);
+  }, [fetchTrades, fetchOpenTrades, playSound]);
 
 
   const handleDelete = async (tradeId: number) => {
@@ -767,7 +790,9 @@ function Dashboard() {
           <>
             {/* Open Trades Table */}
             <OpenTradesTable
-              trades={trades.filter((t: any) => t.status === 'open')}
+              trades={selectedStrategy === 'all' && visibilityInitialized
+                ? openTrades.filter((t: any) => !t.strategy || visibleStrategies.includes(t.strategy))
+                : openTrades}
               getTickerColor={getTickerColor}
             />
 
