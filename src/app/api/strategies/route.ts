@@ -151,8 +151,9 @@ export async function GET(request: NextRequest) {
 
     // Calculate derived stats for each strategy
     const strategies = Object.values(strategyStats).map((stat: any) => {
-      const winRate = stat.closedTrades > 0
-        ? (stat.wins / stat.closedTrades) * 100
+      const decidedTrades = stat.wins + stat.losses;
+      const winRate = decidedTrades > 0
+        ? (stat.wins / decidedTrades) * 100
         : 0;
 
       const avgWin = stat.wins > 0

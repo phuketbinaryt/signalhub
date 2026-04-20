@@ -188,7 +188,8 @@ async function calculateStats(where: any) {
   const winningTrades = closedTrades.filter((t) => (t.pnl || 0) > 0);
   const losingTrades = closedTrades.filter((t) => (t.pnl || 0) < 0);
 
-  const winRate = totalClosed > 0 ? (winningTrades.length / totalClosed) * 100 : 0;
+  const decidedTrades = winningTrades.length + losingTrades.length;
+  const winRate = decidedTrades > 0 ? (winningTrades.length / decidedTrades) * 100 : 0;
   const avgWin = winningTrades.length > 0
     ? winningTrades.reduce((sum, t) => sum + (t.pnl || 0), 0) / winningTrades.length
     : 0;
@@ -280,7 +281,7 @@ async function calculateStats(where: any) {
     .map((stat: any) => ({
       ...stat,
       tickers: Array.from(stat.tickers).sort(),
-      winRate: stat.closedTrades > 0 ? (stat.wins / stat.closedTrades) * 100 : 0,
+      winRate: (stat.wins + stat.losses) > 0 ? (stat.wins / (stat.wins + stat.losses)) * 100 : 0,
     }))
     .sort((a: any, b: any) => b.totalPnl - a.totalPnl);
 

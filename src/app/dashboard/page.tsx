@@ -375,7 +375,7 @@ function Dashboard() {
     const totalPnl = visible.reduce((sum: number, s: any) => sum + s.totalPnl, 0);
     const wins = visible.reduce((sum: number, s: any) => sum + s.wins, 0);
     const losses = visible.reduce((sum: number, s: any) => sum + s.losses, 0);
-    const winRate = totalClosed > 0 ? (wins / totalClosed) * 100 : 0;
+    const winRate = (wins + losses) > 0 ? (wins / (wins + losses)) * 100 : 0;
     const avgWin = wins > 0 ? totalPnl > 0 ? totalPnl / wins : 0 : 0;
     const avgLoss = losses > 0 ? (totalPnl - avgWin * wins) / losses : 0;
     return { totalTrades, openTrades: totalOpen, closedTrades: totalClosed, totalPnl, winningTrades: wins, losingTrades: losses, winRate, avgWin, avgLoss };
@@ -999,7 +999,7 @@ function Dashboard() {
                       {monthlyPnl.map((row) => {
                         const [year, month] = row.month.split('-');
                         const label = new Date(parseInt(year), parseInt(month) - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-                        const winRate = row.trades > 0 ? ((row.wins / row.trades) * 100) : 0;
+                        const winRate = (row.wins + row.losses) > 0 ? ((row.wins / (row.wins + row.losses)) * 100) : 0;
                         return (
                           <tr key={row.month} className="border-b border-[#1a1a1a] hover:bg-[#1a1a1a] transition-colors">
                             <td className="px-3 sm:px-6 py-3 sm:py-4 text-white font-medium text-sm">{label}</td>
@@ -1047,7 +1047,7 @@ function Dashboard() {
                       {dailyPnl.map((row) => {
                         const d = new Date(row.date + 'T12:00:00');
                         const label = d.toLocaleDateString('en-US', { timeZone: 'America/New_York', weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-                        const winRate = row.trades > 0 ? ((row.wins / row.trades) * 100) : 0;
+                        const winRate = (row.wins + row.losses) > 0 ? ((row.wins / (row.wins + row.losses)) * 100) : 0;
                         const isExpanded = expandedDay === row.date;
                         return (
                           <React.Fragment key={row.date}>
@@ -1092,7 +1092,7 @@ function Dashboard() {
                                       </thead>
                                       <tbody>
                                         {hourlyPnl.map((hRow) => {
-                                          const hWinRate = hRow.trades > 0 ? ((hRow.wins / hRow.trades) * 100) : 0;
+                                          const hWinRate = (hRow.wins + hRow.losses) > 0 ? ((hRow.wins / (hRow.wins + hRow.losses)) * 100) : 0;
                                           return (
                                             <tr key={hRow.hour} className="border-b border-[#111] hover:bg-[#151515] transition-colors">
                                               <td className="px-6 py-2.5 text-gray-300 text-sm pl-12">{hRow.hour}</td>
@@ -1147,7 +1147,7 @@ function Dashboard() {
                     </thead>
                     <tbody>
                       {weekdayPnl.map((row) => {
-                        const winRate = row.trades > 0 ? ((row.wins / row.trades) * 100) : 0;
+                        const winRate = (row.wins + row.losses) > 0 ? ((row.wins / (row.wins + row.losses)) * 100) : 0;
                         return (
                           <tr key={row.day} className="border-b border-[#1a1a1a] hover:bg-[#1a1a1a] transition-colors">
                             <td className="px-3 sm:px-6 py-3 sm:py-4 text-white font-medium text-sm">{row.day}</td>

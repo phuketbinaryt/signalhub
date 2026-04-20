@@ -52,8 +52,9 @@ export default function TickerSummary({ tickerStats, onTickerClick }: TickerSumm
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {tickerStats.map((stat) => {
-              const winRate = stat.closedTrades > 0
-                ? ((stat.wins / stat.closedTrades) * 100).toFixed(1)
+              const decidedTrades = stat.wins + stat.losses;
+              const winRate = decidedTrades > 0
+                ? ((stat.wins / decidedTrades) * 100).toFixed(1)
                 : '0.0';
 
               return (
