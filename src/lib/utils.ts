@@ -8,6 +8,8 @@ export function cn(...inputs: ClassValue[]) {
 const CURRENCY_FUTURES = ['6E', '6B', '6J', '6A', '6C', '6S', '6N', '6M'];
 
 export function getPriceDecimals(ticker: string): number {
+  const head = ticker.split(/[_!]/)[0].replace(/\d+$/, '');
+  if (CURRENCY_FUTURES.includes(head)) return 5;
   const base = ticker.replace(/[!\d]+$/, '');
   if (CURRENCY_FUTURES.includes(base)) return 5;
   return 2;
