@@ -5,13 +5,22 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-const CURRENCY_FUTURES = ['6E', '6B', '6J', '6A', '6C', '6S', '6N', '6M'];
+const CURRENCY_FUTURE_DECIMALS: Record<string, number> = {
+  '6E': 5,
+  '6B': 4,
+  '6J': 7,
+  '6A': 5,
+  '6C': 5,
+  '6S': 4,
+  '6N': 4,
+  '6M': 6,
+};
 
 export function getPriceDecimals(ticker: string): number {
   const head = ticker.split(/[_!]/)[0].replace(/\d+$/, '');
-  if (CURRENCY_FUTURES.includes(head)) return 5;
+  if (CURRENCY_FUTURE_DECIMALS[head]) return CURRENCY_FUTURE_DECIMALS[head];
   const base = ticker.replace(/[!\d]+$/, '');
-  if (CURRENCY_FUTURES.includes(base)) return 5;
+  if (CURRENCY_FUTURE_DECIMALS[base]) return CURRENCY_FUTURE_DECIMALS[base];
   return 2;
 }
 
