@@ -16,6 +16,7 @@ const FUTURES_DECIMALS: Record<string, number> = {
   '6M': 6,
   'NG': 3,
   'QG': 3,
+  'HG': 4,
 };
 
 const MONTH_CODES = 'FGHJKMNQUVXZ';
