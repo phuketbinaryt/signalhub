@@ -5,7 +5,7 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-const CURRENCY_FUTURE_DECIMALS: Record<string, number> = {
+const FUTURES_DECIMALS: Record<string, number> = {
   '6E': 5,
   '6B': 4,
   '6J': 7,
@@ -14,13 +14,15 @@ const CURRENCY_FUTURE_DECIMALS: Record<string, number> = {
   '6S': 4,
   '6N': 4,
   '6M': 6,
+  'NG': 3,
+  'QG': 3,
 };
 
 export function getPriceDecimals(ticker: string): number {
   const head = ticker.split(/[_!]/)[0].replace(/\d+$/, '');
-  if (CURRENCY_FUTURE_DECIMALS[head]) return CURRENCY_FUTURE_DECIMALS[head];
+  if (FUTURES_DECIMALS[head]) return FUTURES_DECIMALS[head];
   const base = ticker.replace(/[!\d]+$/, '');
-  if (CURRENCY_FUTURE_DECIMALS[base]) return CURRENCY_FUTURE_DECIMALS[base];
+  if (FUTURES_DECIMALS[base]) return FUTURES_DECIMALS[base];
   return 2;
 }
 
