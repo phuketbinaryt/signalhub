@@ -18,11 +18,19 @@ const FUTURES_DECIMALS: Record<string, number> = {
   'QG': 3,
 };
 
+const MONTH_CODES = 'FGHJKMNQUVXZ';
+
 export function getPriceDecimals(ticker: string): number {
-  const head = ticker.split(/[_!]/)[0].replace(/\d+$/, '');
-  if (FUTURES_DECIMALS[head]) return FUTURES_DECIMALS[head];
-  const base = ticker.replace(/[!\d]+$/, '');
-  if (FUTURES_DECIMALS[base]) return FUTURES_DECIMALS[base];
+  const head = ticker.split(/[_!]/)[0];
+  const candidates = [
+    head.replace(/\d+$/, ''),
+    head.replace(new RegExp(`[${MONTH_CODES}]\\d{1,4}$`), ''),
+    ticker.replace(/[!\d]+$/, ''),
+    ticker.replace(new RegExp(`[${MONTH_CODES}]\\d{1,4}$`), ''),
+  ];
+  for (const c of candidates) {
+    if (FUTURES_DECIMALS[c]) return FUTURES_DECIMALS[c];
+  }
   return 2;
 }
 
